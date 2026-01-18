@@ -1,0 +1,16 @@
+{
+  "name": "utils",
+  "private": true,
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "files": [
+    "dist",
+    "package.json"
+  ],
+  "dependencies": {
+    "luxon": "^3.7.2"
+  },
+  "devDependencies": {
+    "@types/luxon": "^3.7.1"
+  }
+}

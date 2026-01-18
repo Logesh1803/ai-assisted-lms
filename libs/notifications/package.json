@@ -1,0 +1,17 @@
+{
+  "name": "notifications",
+  "private": true,
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "files": [
+    "dist",
+    "package.json"
+  ],
+  "dependencies": {
+    "@nestjs/event-emitter": "^3.0.1",
+    "nodemailer": "^7.0.12"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^7"
+  }
+}

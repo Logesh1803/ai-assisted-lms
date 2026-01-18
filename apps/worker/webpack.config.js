@@ -29,7 +29,7 @@ module.exports = {
     ],
     splitChunks: {
       chunks: "all",
-      maxSize: 700 * 1024,
+      maxSize: 500 * 1024,
       cacheGroups: {
         vendor: {
           test: /node_modules/,
@@ -77,6 +77,9 @@ module.exports = {
     clean: true,
   },
   externals: {
+    "@bull-board/api": "commonjs @bull-board/api",
+    "@bull-board/ui": "commonjs @bull-board/ui",
+    "redis-info": "commonjs redis-info",
     lodash: "commonjs lodash",
   },
 };

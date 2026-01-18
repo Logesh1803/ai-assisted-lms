@@ -6,20 +6,21 @@
     "node": "^18.0.0",
     "yarn": "4.11.0"
   },
+  "packageManager": "yarn@4.11.0",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
     "start": "turbo start",
     "lint": "turbo lint",
-    "web:build:standalone": "node scripts/build-standalone-nextjs.ts"
+    "web:build:standalone": "node scripts/build-standalone-nextjs.ts",
+    "prisma:system:generate": "npx prisma generate --config=libs/data-sources/prisma/system/prisma.config.ts",
+    "prisma:system:deploy": "npx prisma migrate deploy --config=libs/data-sources/prisma/system/prisma.config.ts",
+    "prisma:system:push": "npx prisma db push --config=libs/data-sources/prisma/system/prisma.config.ts"
   },
-  "packageManager": "yarn@4.11.0",
-  "workspaces": [
-    "apps/*"
-  ],
   "devDependencies": {
     "@prisma/adapter-pg": "^7.1.0",
     "@prisma/client": "^7.1.0",
+    "@types/multer": "^2.0.0",
     "@types/pg": "^8.16.0",
     "copy-webpack-plugin": "^13.0.1",
     "dotenv": "^17.2.3",
@@ -29,6 +30,10 @@
     "turbo": "^2.6.1",
     "typescript": "^5.9.3"
   },
+  "workspaces": [
+    "apps/*",
+    "libs/*"
+  ],
   "dependencies": {
     "@nestjs/bullmq": "^11.0.4",
     "@prisma/adapter-pg": "^7.0.0",

@@ -1,0 +1,19 @@
+{
+  "name": "message-queues",
+  "private": true,
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "files": [
+    "dist",
+    "package.json"
+  ],
+  "dependencies": {
+    "@bull-board/api": "^6.14.2",
+    "@bull-board/express": "^6.14.2",
+    "@bull-board/nestjs": "^6.14.2",
+    "@nestjs/bullmq": "^11.0.4",
+    "@nestjs/config": "^4.0.2",
+    "bullmq": "^5.65.0",
+    "express-basic-auth": "^1.2.1"
+  }
+}

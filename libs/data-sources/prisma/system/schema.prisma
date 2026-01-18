@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../../generated/system"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum TokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+model User {
+  id             Int           @id @default(autoincrement())
+  uuid           String        @unique @default(dbgenerated("gen_random_uuid()"))
+  first_name     String
+  last_name      String?
+  email          String        @unique
+  password       String
+  role           UserRole      @default(STUDENT)
+  status         AccountStatus @default(ACTIVE)
+  email_verified Boolean       @default(false)
+
+  created_at BigInt
+  updated_at BigInt?
+  deleted_at BigInt?
+
+  user_tokens UserToken[]
+}
+
+model UserToken {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  token_hash String    @unique
+  type       TokenType
+  used_at    BigInt?
+  expires_at BigInt
+  created_at BigInt
+  updated_at BigInt?
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, type])
+}
+
+model Course {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  deleted_at  DateTime?
+  creatded_by Int
+  updated_by  Int
+  deleted_by  Int?
+}

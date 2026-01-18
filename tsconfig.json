@@ -19,7 +19,21 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
-    "baseUrl": "./"
+    "baseUrl": "./",
+    "paths": {
+      "@thinkbloom/data-sources": [
+        "libs/data-sources/src"
+      ],
+      "@thinkbloom/utils": [
+        "libs/utils/src"
+      ],
+      "@thinkbloom/message-queue": [
+        "libs/message-queue/src"
+      ],
+      "@thinkbloom/notifications": [
+        "libs/notifications/src"
+      ],
+    }
   },
   "include": [
     "scripts/**/*",
