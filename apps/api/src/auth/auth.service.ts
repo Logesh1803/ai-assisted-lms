@@ -190,4 +190,28 @@ this.logger.log("invoking user.password.reset event with data:",userEventData)
       }
     }
   }
+
+  async validateJwtPayload(payload: any) {
+    this.logger.debug(
+      `validateJwtPayload called with payload: ${JSON.stringify(payload)}`,
+    );
+
+    const user = await this.systemDbService.user.findUnique({
+      where: { id: payload.sub, email: payload.email },
+    });
+
+    if (!user) {
+      this.logger.log("User not found");
+      throw new UnauthorizedException("Invalid token");
+    }
+
+
+    this.logger.debug(
+      `token validated for user: ${JSON.stringify(user.email)}`,
+    );
+    return {
+      id: user.id,
+      email: user.email,
+    };
+  }
 }
