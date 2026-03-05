@@ -1,33 +1,60 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { AiSummaryService } from './ai-summary.service';
-import { CreateAiSummaryDto } from './dto/create-ai-summary.dto';
-import { UpdateAiSummaryDto } from './dto/update-ai-summary.dto';
-import {ApiBearerAuth, ApiTags} from "@nestjs/swagger";
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  Request,
+  UseGuards,
+} from "@nestjs/common";
+import { ApiTags } from "@nestjs/swagger";
+import { AiSummaryService } from "./ai-summary.service";
+import { JwtAuthGuard } from "@/common/guard/jwt-auth.guard";
+import { ApiSwaggerEndpoint } from "@/common/decorators";
 
-ApiTags("AI-Summary")
-@ApiBearerAuth()
-@Controller('ai-summary')
+@ApiTags("AI Summary")
+@UseGuards(JwtAuthGuard)
+@Controller("ai-summary")
 export class AiSummaryController {
   constructor(private readonly aiSummaryService: AiSummaryService) {}
 
-  @Post()
-  create(@Body() createAiSummaryDto: CreateAiSummaryDto) {
-    return this.aiSummaryService.create(createAiSummaryDto);
+  // POST /ai-summary/:courseUuid/generate
+  @Post(":courseUuid/generate")
+  @ApiSwaggerEndpoint({
+    summary: "Generate course summary",
+    description:
+      "Generate or regenerate an AI summary and key points for a course using Gemini",
+    params: [
+      { name: "courseUuid", required: true, description: "UUID of the course" },
+    ],
+  })
+  generate(@Param("courseUuid") courseUuid: string, @Request() req) {
+    return this.aiSummaryService.generate(courseUuid, req.user.id);
   }
 
-  @Get()
-  findAll() {
-    return this.aiSummaryService.findAll();
+  // GET /ai-summary/:courseUuid
+  @Get(":courseUuid")
+  @ApiSwaggerEndpoint({
+    summary: "Get course summary",
+    description: "Get the existing AI-generated summary for a course",
+    params: [
+      { name: "courseUuid", required: true, description: "UUID of the course" },
+    ],
+  })
+  getByCourse(@Param("courseUuid") courseUuid: string) {
+    return this.aiSummaryService.getByCourse(courseUuid);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.aiSummaryService.findOne(+id);
+  // DELETE /ai-summary/:courseUuid
+  @Delete(":courseUuid")
+  @ApiSwaggerEndpoint({
+    summary: "Delete course summary",
+    description: "Delete the AI-generated summary for a course",
+    params: [
+      { name: "courseUuid", required: true, description: "UUID of the course" },
+    ],
+  })
+  delete(@Param("courseUuid") courseUuid: string) {
+    return this.aiSummaryService.delete(courseUuid);
   }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAiSummaryDto: UpdateAiSummaryDto) {
-    return this.aiSummaryService.update(+id, updateAiSummaryDto);
-  }
-
 }

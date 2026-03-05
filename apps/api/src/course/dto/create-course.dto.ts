@@ -1,28 +1,24 @@
-import {StringField} from "@/common/decorators";
-import {ApiProperty} from "@nestjs/swagger";
-import {IsArray, IsOptional, IsString} from "class-validator";
+import { ApiProperty } from '@nestjs/swagger';
+import { IsArray, IsOptional, IsString } from 'class-validator';
 
 export class CreateCourseDto {
-  @StringField({ example: 'abc-course', required: true })
+  @ApiProperty({ example: 'Introduction to TypeScript' })
+  @IsString()
   title: string;
 
-  @StringField({ example: 'user-uuid-123', required: true })
-  teacherUuid: string;
-
-  @StringField({ example: 'example description', required: false })
+  @ApiProperty({ example: 'Learn TypeScript from scratch', required: false })
+  @IsString()
   @IsOptional()
   description?: string;
 
-  @ApiProperty({
-    example: ['JavaScript', 'React'],
-    required: false,
-    type: [String],
-  })
+  @ApiProperty({ example: 'https://example.com/thumb.jpg', required: false })
+  @IsString()
+  @IsOptional()
+  thumbnail?: string;
+
+  @ApiProperty({ example: ['TypeScript', 'JavaScript'], required: false })
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
   tags?: string[];
-
-  @StringField({ example: 'https://example.com/image1' })
-  thumbnail:string
 }

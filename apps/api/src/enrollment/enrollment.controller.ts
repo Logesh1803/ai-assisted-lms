@@ -1,33 +1,105 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { EnrollmentService } from './enrollment.service';
-import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
-import { UpdateEnrollmentDto } from './dto/update-enrollment.dto';
-import {ApiBearerAuth, ApiTags} from "@nestjs/swagger";
+import {
+  Controller,
+  Post,
+  Get,
+  Delete,
+  Param,
+  Query,
+  Request,
+  UseGuards,
+} from "@nestjs/common";
+import { ApiTags } from "@nestjs/swagger";
+import { EnrollmentService } from "./enrollment.service";
+import { QueryEnrollmentDto } from "./dto/create-enrollment.dto";
+import { ApiSwaggerEndpoint } from "@/common/decorators";
+import { JwtAuthGuard } from "@/common/guard/jwt-auth.guard";
 
-@ApiTags("Enrollment")
-@ApiBearerAuth()
-@Controller('enrollment')
+@ApiTags("Enrollments")
+@UseGuards(JwtAuthGuard)
+@Controller("enrollments")
 export class EnrollmentController {
   constructor(private readonly enrollmentService: EnrollmentService) {}
 
-  @Post()
-  create(@Body() createEnrollmentDto: CreateEnrollmentDto) {
-    return this.enrollmentService.create(createEnrollmentDto);
+  // POST /enrollments/:courseUuid
+  @Post(":courseUuid")
+  @ApiSwaggerEndpoint({
+    summary: "Enroll in a course",
+    description: "Enroll the authenticated student into a course",
+    params: [
+      { name: "courseUuid", required: true, description: "UUID of the course" },
+    ],
+  })
+  enroll(@Param("courseUuid") courseUuid: string, @Request() req) {
+    return this.enrollmentService.enroll(req.user.id, courseUuid, req.user.id);
   }
 
-  @Get()
-  findAll() {
-    return this.enrollmentService.findAll();
+  // GET /enrollments/me
+  @Get("me")
+  @ApiSwaggerEndpoint({
+    summary: "Get my enrollments",
+    description: "Get all enrollments for the authenticated student",
+    queries: [
+      { name: "page", required: false },
+      { name: "limit", required: false },
+      {
+        name: "status",
+        required: false,
+        description: "Filter by enrollment status (ACTIVE, COMPLETED, DROPPED)",
+      },
+    ],
+  })
+  getMyEnrollments(@Request() req, @Query() query: QueryEnrollmentDto) {
+    return this.enrollmentService.getStudentEnrollments(req.user.id, query);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.enrollmentService.findOne(+id);
+  // GET /enrollments/course/:courseUuid
+  @Get("course/:courseUuid")
+  @ApiSwaggerEndpoint({
+    summary: "Get course enrollments",
+    description: "Get all enrollments for a specific course (teacher view)",
+    params: [
+      { name: "courseUuid", required: true, description: "UUID of the course" },
+    ],
+    queries: [
+      { name: "page", required: false },
+      { name: "limit", required: false },
+      {
+        name: "status",
+        required: false,
+        description: "Filter by enrollment status",
+      },
+    ],
+  })
+  getCourseEnrollments(
+    @Param("courseUuid") courseUuid: string,
+    @Query() query: QueryEnrollmentDto,
+  ) {
+    return this.enrollmentService.getCourseEnrollments(courseUuid, query);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateEnrollmentDto: UpdateEnrollmentDto) {
-    return this.enrollmentService.update(+id, updateEnrollmentDto);
+  // GET /enrollments/:uuid
+  @Get(":uuid")
+  @ApiSwaggerEndpoint({
+    summary: "Get enrollment by UUID",
+    description: "Get a single enrollment with lesson progress details",
+    params: [
+      { name: "uuid", required: true, description: "UUID of the enrollment" },
+    ],
+  })
+  findOne(@Param("uuid") uuid: string) {
+    return this.enrollmentService.findOne(uuid);
   }
 
+  // DELETE /enrollments/:uuid/drop
+  @Delete(":uuid/drop")
+  @ApiSwaggerEndpoint({
+    summary: "Drop enrollment",
+    description: "Drop (withdraw from) a course enrollment",
+    params: [
+      { name: "uuid", required: true, description: "UUID of the enrollment" },
+    ],
+  })
+  drop(@Param("uuid") uuid: string, @Request() req) {
+    return this.enrollmentService.drop(uuid, req.user.id);
+  }
 }

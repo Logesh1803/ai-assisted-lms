@@ -74,7 +74,7 @@ export class AuthController {
     ],
     successDescription:"Indicates that the password has been successfully reset",
   })
-  @Post("reset-password")
+  @Post("reset-password/:token")
   async resetPassword(@Body() dto:SetNewPasswordDto,@Param("token") token:string){
     return await this.authService.setNewPassword(dto,token)
   }

@@ -24,22 +24,39 @@ enum TokenType {
   PASSWORD_RESET
 }
 
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  DROPPED
+}
+
 model User {
-  id             Int           @id @default(autoincrement())
-  uuid           String        @unique @default(dbgenerated("gen_random_uuid()"))
+  id             Int            @id @default(autoincrement())
+  uuid           String         @unique @default(dbgenerated("gen_random_uuid()"))
   first_name     String
   last_name      String?
-  email          String        @unique
-  password       String
-  role           UserRole      @default(STUDENT)
-  status         AccountStatus @default(ACTIVE)
-  email_verified Boolean       @default(false)
+  email          String         @unique
+  password       String?
+  role           UserRole       @default(STUDENT)
+  status         AccountStatus  @default(ACTIVE)
+  email_verified Boolean        @default(false)
+  created_at     BigInt
+  updated_at     BigInt?
+  deleted_at     BigInt?
+  tokens         UserToken[]
+  courses        Course[]
+  enrollments    Enrollment[]
+  files          ImportedFile[]
+  quiz_attempts  QuizAttempt[]
+  chat_sessions  ChatSession[]
 
-  created_at BigInt
-  updated_at BigInt?
-  deleted_at BigInt?
-
-  user_tokens UserToken[]
+  @@map("users")
 }
 
 model UserToken {
@@ -51,20 +68,211 @@ model UserToken {
   expires_at BigInt
   created_at BigInt
   updated_at BigInt?
-
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id, type])
+  @@map("user_tokens")
 }
 
 model Course {
-  id          Int       @id @default(autoincrement())
+  id          Int            @id @default(autoincrement())
+  uuid        String         @unique @default(dbgenerated("gen_random_uuid()"))
+  teacher_id  Int
   title       String
-  description String?
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @updatedAt
-  deleted_at  DateTime?
-  creatded_by Int
+  description String?        @db.Text
+  thumbnail   String?        @db.Text
+  status      CourseStatus   @default(DRAFT)
+  tags        String[]
+  created_by  Int
   updated_by  Int
-  deleted_by  Int?
+  created_at  BigInt
+  updated_at  BigInt?
+  deleted_at  BigInt?
+  teacher     User           @relation(fields: [teacher_id], references: [id])
+  lessons     Lesson[]
+  enrollments Enrollment[]
+  files       ImportedFile[]
+  summaries   AISummary[]
+
+  @@index([teacher_id])
+  @@index([status])
+  @@map("courses")
+}
+
+model Lesson {
+  id          Int              @id @default(autoincrement())
+  uuid        String           @unique @default(dbgenerated("gen_random_uuid()"))
+  course_id   Int
+  title       String
+  description String?          @db.Text
+  content     String?          @db.Text
+  video_url   String?
+  order       Int
+  duration    Int?
+  created_by  Int
+  updated_by  Int
+  created_at  BigInt
+  updated_at  BigInt?
+  deleted_at  BigInt?
+  course      Course           @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  files       ImportedFile[]
+  progress    LessonProgress[]
+  note        LessonNote?
+
+  @@index([course_id, order])
+  @@map("lessons")
+}
+
+model ImportedFile {
+  id                 Int     @id @default(autoincrement())
+  uuid               String  @unique @default(dbgenerated("gen_random_uuid()"))
+  user_id            Int
+  course_id          Int
+  lesson_id          Int?
+  original_file_name String
+  blob_file_name     String
+  file_url           String
+  file_size          BigInt
+  file_type          String?
+  created_by         Int
+  updated_by         Int
+  created_at         BigInt
+  updated_at         BigInt?
+  deleted_at         BigInt?
+  user               User    @relation(fields: [user_id], references: [id])
+  course             Course  @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  lesson             Lesson? @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+
+  @@index([course_id])
+  @@index([lesson_id])
+  @@map("imported_files")
+}
+
+model Enrollment {
+  id              Int              @id @default(autoincrement())
+  uuid            String           @unique @default(dbgenerated("gen_random_uuid()"))
+  student_id      Int
+  course_id       Int
+  status          EnrollmentStatus @default(ACTIVE)
+  progress        Float            @default(0)
+  enrolled_at     BigInt
+  completed_at    BigInt?
+  created_by      Int
+  updated_by      Int
+  created_at      BigInt
+  updated_at      BigInt?
+  student         User             @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  course          Course           @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  lesson_progress LessonProgress[]
+  quiz_attempts   QuizAttempt[]
+
+  @@unique([student_id, course_id])
+  @@index([student_id])
+  @@index([course_id])
+  @@map("enrollments")
+}
+
+model LessonProgress {
+  id            Int        @id @default(autoincrement())
+  enrollment_id Int
+  lesson_id     Int
+  is_completed  Boolean    @default(false)
+  completed_at  BigInt?
+  watch_time    Int        @default(0)
+  created_by    Int
+  updated_by    Int
+  created_at    BigInt
+  updated_at    BigInt?
+  enrollment    Enrollment @relation(fields: [enrollment_id], references: [id], onDelete: Cascade)
+  lesson        Lesson     @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+
+  @@unique([enrollment_id, lesson_id])
+  @@index([enrollment_id])
+  @@map("lesson_progress")
+}
+
+model AISummary {
+  id         Int     @id @default(autoincrement())
+  uuid       String  @unique @default(dbgenerated("gen_random_uuid()"))
+  course_id  Int
+  summary    String  @db.Text
+  key_points Json
+  created_by Int
+  updated_by Int
+  created_at BigInt
+  updated_at BigInt?
+  course     Course  @relation(fields: [course_id], references: [id], onDelete: Cascade)
+
+  @@unique([course_id])
+  @@map("ai_summaries")
+}
+
+model QuizAttempt {
+  id              Int        @id @default(autoincrement())
+  uuid            String     @unique @default(dbgenerated("gen_random_uuid()"))
+  enrollment_id   Int
+  student_id      Int
+  course_id       Int
+  questions       Json
+  answers         Json
+  score           Float
+  total_questions Int
+  correct_answers Int
+  strong_topics   String[]
+  weak_topics     String[]
+  ai_feedback     String?    @db.Text
+  started_at      BigInt
+  submitted_at    BigInt?
+  created_by      Int
+  updated_by      Int
+  created_at      BigInt
+  updated_at      BigInt?
+  enrollment      Enrollment @relation(fields: [enrollment_id], references: [id], onDelete: Cascade)
+  student         User       @relation(fields: [student_id], references: [id])
+
+  @@index([enrollment_id])
+  @@index([student_id])
+  @@index([course_id])
+  @@map("quiz_attempts")
+}
+
+model LessonNote {
+  id         Int     @id @default(autoincrement())
+  uuid       String  @unique @default(dbgenerated("gen_random_uuid()"))
+  lesson_id  Int     @unique
+  content    String  @db.Text
+  created_by Int
+  updated_by Int
+  created_at BigInt
+  updated_at BigInt?
+  lesson     Lesson  @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+
+  @@map("lesson_notes")
+}
+
+model ChatSession {
+  id         Int           @id @default(autoincrement())
+  uuid       String        @unique @default(dbgenerated("gen_random_uuid()"))
+  user_id    Int
+  course_id  Int?
+  title      String?
+  created_at BigInt
+  updated_at BigInt?
+  user       User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  messages   ChatMessage[]
+
+  @@index([user_id])
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id         Int         @id @default(autoincrement())
+  session_id Int
+  role       String
+  content    String      @db.Text
+  created_at BigInt
+  session    ChatSession @relation(fields: [session_id], references: [id], onDelete: Cascade)
+
+  @@index([session_id])
+  @@map("chat_messages")
 }

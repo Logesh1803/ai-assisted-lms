@@ -8,11 +8,21 @@ import {
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { GlobalExceptionFilter } from "./common/core/global-expection";
 import { SuccessResponseInterceptor } from "./common/core/success-response.interceptor";
+import { NestExpressApplication } from "@nestjs/platform-express";
+import * as path from "path";
+import * as fs from "fs";
 
 const SWAGGER_CDN = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.30.2";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Ensure uploads directory exists and serve as static files at /uploads
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  app.useStaticAssets(uploadsDir, { prefix: '/uploads' });
   (BigInt.prototype as any).toJSON = function () {
     return this.toString();
   };
@@ -70,7 +80,7 @@ async function bootstrap() {
     ],
   });
 
-  app.getHttpAdapter().get("/api/json", (req, res) => {
+  app.getHttpAdapter().get("/api/json", (_req: any, res: any) => {
     res.type("application/json");
     res.send(document);
   });

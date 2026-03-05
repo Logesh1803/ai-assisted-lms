@@ -1,70 +1,83 @@
-import { Controller, Get, Post, Body, Param,  Query, Put} from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CourseService } from './course.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
-import {ApiSwaggerEndpoint, AuthUser} from "@/common/decorators";
-import {ApiBearerAuth, ApiTags} from "@nestjs/swagger";
+import { JwtAuthGuard } from '@/common/guard/jwt-auth.guard';
+import { CourseStatus } from '@thinkbloom/data-sources';
 
-@ApiTags('Course')
+@ApiTags('Courses')
 @ApiBearerAuth()
-@Controller('course')
+@UseGuards(JwtAuthGuard)
+@Controller('courses')
 export class CourseController {
   constructor(private readonly courseService: CourseService) {}
 
-  // ====== CREATE COURSE ======
-  @ApiSwaggerEndpoint({
-    summary:"Create course",
-    description:"Create course",
-    bodyDto:CreateCourseDto
-  })
+  // POST /courses — teacher creates a course
   @Post()
-  async create(@Body() createCourseDto: CreateCourseDto, @AuthUser()user:any) {
-    return await this.courseService.create(createCourseDto,user);
+  create(@Body() dto: CreateCourseDto, @Request() req) {
+    return this.courseService.create(dto, req.user.id);
   }
 
-  // ====== GET ALL COURSE ======
-  @ApiSwaggerEndpoint({
-    summary:"Get all courses",
-    description:"Get all courses",
-    queries:[
-      {name:"page",required:false},
-      {name:"limit",required:false},
-      {name:"search",required:false},
-      {name:"sortBy",required:false},
-      {name:"sortOrder",required:false}
-    ]
-  })
+  // GET /courses — all published courses (student browse)
   @Get()
-  async findAll(@Query()query:any) {
-    return await this.courseService.findAll(query);
+  findAll(@Query() query: any) {
+    return this.courseService.findAll(query);
   }
 
-  // ====== GET SPECIFIC COURSE ======
-  @ApiSwaggerEndpoint({
-    summary:"Get specific course",
-    description:"Get specific course",
-    params:[
-      {name:"courseUuid",required:true}
-    ]
-  })
-  @Get(':courseUuid')
-  async findOne(@Param('courseUuid') id: string) {
-    return await this.courseService.findOne(id);
+  // GET /courses/mine — teacher's own courses
+  @Get('mine')
+  findMyCourses(@Request() req, @Query() query: any) {
+    return this.courseService.findMyCourses(req.user.id, query);
   }
 
-  // ======= UPDATE COURSE =========
-
-  @ApiSwaggerEndpoint({
-    summary:"Get specific course",
-    description:"Get specific course",
-    params:[
-      {name:"courseUuid",required:true}
-    ],
-    bodyDto:UpdateCourseDto
-  })
-  @Put(':courseUuid')
-  update(@Param('courseUuid') courseUuid: string, @Body() updateCourseDto: UpdateCourseDto,@AuthUser()user:any) {
-    return this.courseService.update(courseUuid, updateCourseDto,user);
+  // GET /courses/:uuid — single course detail
+  @Get(':uuid')
+  findOne(@Param('uuid') uuid: string, @Request() req) {
+    return this.courseService.findOne(uuid, req.user.id);
   }
 
+  // PUT /courses/:uuid — update course
+  @Put(':uuid')
+  update(
+    @Param('uuid') uuid: string,
+    @Body() dto: UpdateCourseDto,
+    @Request() req,
+  ) {
+    return this.courseService.update(uuid, dto, req.user.id);
+  }
+
+  // PATCH /courses/:uuid/status — publish/archive
+  @Patch(':uuid/status')
+  changeStatus(
+    @Param('uuid') uuid: string,
+    @Body('status') status: CourseStatus,
+    @Request() req,
+  ) {
+    return this.courseService.changeStatus(uuid, status, req.user.id);
+  }
+
+  // DELETE /courses/:uuid
+  @Delete(':uuid')
+  remove(@Param('uuid') uuid: string, @Request() req) {
+    return this.courseService.remove(uuid, req.user.id);
+  }
+
+  // GET /courses/:uuid/performance — student performance (teacher)
+  @Get(':uuid/performance')
+  getStudentPerformance(@Param('uuid') uuid: string, @Request() req) {
+    return this.courseService.getStudentPerformance(uuid, req.user.id);
+  }
 }

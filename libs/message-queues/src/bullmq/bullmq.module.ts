@@ -6,6 +6,8 @@ import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import basicAuth from "express-basic-auth";
 import { NotificationProducerService } from "./producers/notification.producer.service";
+import { VideoProducerService } from "./producers/video.producer.service";
+import { BULL_QUEUES } from "../queues.constant";
 
 export interface QueueSystemOptions {
   queues: string[];
@@ -18,13 +20,20 @@ export class BullMQModule {
   static register(options: QueueSystemOptions): DynamicModule {
     const enableBullBoard = options.enableBullBoard! === true;
 
+    // Always register both queues regardless of the queues option
+    const allQueues = [
+      ...new Set([...options.queues, BULL_QUEUES.NOTIFICATIONS, BULL_QUEUES.VIDEO_PROCESSING]),
+    ];
+
     return {
       module: BullMQModule,
       providers: [
         NotificationProducerService,
+        VideoProducerService,
       ],
       exports: [
         NotificationProducerService,
+        VideoProducerService,
       ],
       imports: [
         ConfigModule,
@@ -65,7 +74,7 @@ export class BullMQModule {
                 adapter: ExpressAdapter,
                 boardOptions: {
                   uiConfig: {
-                    boardTitle: "Queues",
+                    boardTitle: "ThinkBloom Queues",
                   },
                 },
                 middleware: basicAuth({
@@ -78,7 +87,7 @@ export class BullMQModule {
               }),
             }),
 
-            ...options.queues.map((queueName) =>
+            ...allQueues.map((queueName) =>
               BullBoardModule.forFeature({
                 name: queueName,
                 adapter: BullMQAdapter,
@@ -86,7 +95,7 @@ export class BullMQModule {
             ),
           ]
           : []),
-        ...options.queues.flatMap((queueName) => [
+        ...allQueues.flatMap((queueName) => [
           BullModule.registerQueue({ name: queueName })
         ]),
       ],
