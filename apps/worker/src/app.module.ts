@@ -5,7 +5,8 @@ import { BULL_QUEUES, BullMQModule } from "message-queues/src";
 import { ScheduleModule } from "@nestjs/schedule";
 import { AppController } from "@/app.controller";
 import { NotificationConsumerService } from "./consumers/notification.consumer.service";
-import {NotificationModule} from "notifications/src";
+import { VideoConsumerService } from "./consumers/video.consumer.service";
+import { NotificationModule } from "notifications/src";
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import {NotificationModule} from "notifications/src";
     BullMQModule.register({
       queues: [
         BULL_QUEUES.NOTIFICATIONS,
+        BULL_QUEUES.VIDEO_PROCESSING,
       ],
     }),
     ScheduleModule.forRoot(),
@@ -24,6 +26,7 @@ import {NotificationModule} from "notifications/src";
   controllers: [AppController],
   providers: [
     NotificationConsumerService,
+    VideoConsumerService,
   ],
 })
 export class AppModule {}

@@ -3,7 +3,7 @@ import { Job } from "bullmq";
 import {Logger} from "@nestjs/common";
 
 export abstract class BullMQWorkerHost extends WorkerHost {
-  private readonly logger = new Logger(BullMQWorkerHost.name);
+  protected readonly logger = new Logger(BullMQWorkerHost.name);
   @OnWorkerEvent("completed")
   onCompleted(job: Job) {
     const { id, name, queueName, finishedOn, returnvalue } = job;

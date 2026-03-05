@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
-import { QuizService } from './quiz.service';
-import { QuizController } from './quiz.controller';
+import { QuizAttemptService } from './quiz.service';
+import { QuizAttemptController } from './quiz.controller';
+import { GeminiModule } from '../gemini/gemini.module';
 
 @Module({
-  controllers: [QuizController],
-  providers: [QuizService],
+  imports: [GeminiModule],
+  controllers: [QuizAttemptController],
+  providers: [QuizAttemptService],
 })
 export class QuizModule {}

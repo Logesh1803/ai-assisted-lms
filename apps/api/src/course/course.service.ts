@@ -1,159 +1,222 @@
-import {ConflictException, Injectable, NotFoundException} from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
-import {CourseStatus, SystemsDatabaseService} from "@thinkbloom/data-sources";
-import {getCurrentUnixTimestamp, getTimestamps} from "utils/src/date-formatter.service";
+import { CourseStatus, SystemsDatabaseService } from '@thinkbloom/data-sources';
+import { getTimestamps } from 'utils/src/date-formatter.service';
 
 @Injectable()
 export class CourseService {
-  constructor(private systemDbService:SystemsDatabaseService) {}
+  constructor(private db: SystemsDatabaseService) {}
 
-  // ============== CREATE COURSE =============
-  async create(createCourseDto: CreateCourseDto,user:any) {
-    const teacher = await this.systemDbService.user.findUnique({
-      where:{
-        uuid:createCourseDto.teacherUuid
+  // ─── Create Course (teacher only) ─────────────────────────────────────────
+  async create(dto: CreateCourseDto, userId: number) {
+    const existing = await this.db.course.findFirst({
+      where: { title: dto.title, teacher_id: userId },
+    });
+    if (existing) throw new ConflictException('You already have a course with this title');
+
+    return this.db.course.create({
+      data: {
+        teacher_id: userId,
+        title: dto.title,
+        description: dto.description,
+        thumbnail: dto.thumbnail,
+        tags: dto.tags ?? [],
+        status: CourseStatus.DRAFT,
+        created_by: userId,
+        updated_by: userId,
+        ...getTimestamps('create'),
       },
-      select:{
-        id:true
-      }
-    })
-
-    if(!teacher){
-      throw new NotFoundException("User not found");
-    }
-
-    const checkSameCourse = await this.systemDbService.course.findFirst({
-      where:{
-        title:createCourseDto.title,
-        teacher_id:teacher.id
-      }
-    })
-
-    if(checkSameCourse){
-      throw  new ConflictException("This course already exists")
-    }
-
-    const newCourse = await this.systemDbService.course.create({
-      data:{
-        teacher_id:teacher.id,
-        title:createCourseDto.title,
-        description:createCourseDto.description,
-        tags:createCourseDto.tags,
-        status:CourseStatus.DRAFT,
-        created_by:user.id,
-        updated_by:user.id,
-        ...getTimestamps("create")
-      }
-    })
-
-    return newCourse
-  }
-
-  // ============== GET ALL COURSE ===============
-  async findAll(query:any) {
-    const {
-      page = 1,
-      limit = 10,
-      search,
-      sortBy = "created_at",
-      sortOrder = "desc",
-    }=query
-
-    const skip = (page - 1) * limit;
-
-    const where:any = {}
-
-    if(search){
-      where.OR ={name:{contains:search,mode:"insensitive"}}
-    }
-
-    const totalCourses = await this.systemDbService.course.count({where})
-
-    const courses = await this.systemDbService.course.findMany({
-      where,
-      skip,
-      take:limit,
-      orderBy:{ [sortBy] : sortOrder },
-      select:{
-        uuid:true,
-        title:true,
-        thumbnail:true,
-        description:true
-      }
-    })
-
-    if(!courses|| courses.length === 0){
-      throw new NotFoundException("Courses not found")
-    }
-
-    const formattedCourses = courses.map(course=>({
-      uuid: course.uuid,
-      title:course.title,
-      thumbnail:course.thumbnail,
-      description:course.description,
-    }))
-
-    return{
-      page,
-      limit,
-      totalCourses,
-      formattedCourses
-    }
-  }
-
-  // =============== GET SPECIFIC COURSE =============
-  async findOne(courseUUid: string) {
-    const course = await this.systemDbService.course.findUnique({
-      where:{
-        uuid:courseUUid,
+      include: {
+        teacher: { select: { uuid: true, first_name: true, last_name: true } },
+        _count: { select: { lessons: true, enrollments: true } },
       },
-      select:{
-        uuid:true,
-        title:true,
-        thumbnail:true,
-        description:true,
-      }
-    })
-
-    if(!course){
-      throw new NotFoundException("Course not found")
-    }
-
- return course
+    });
   }
 
-  // ================ UPDATE COURSE ====================
-  async update(courseUuid: string, updateCourseDto: UpdateCourseDto,user:any) {
+  // ─── Get All Published Courses (student browse) ────────────────────────────
+  async findAll(query: any) {
+    const { page = 1, limit = 12, search, tags } = query;
+    const skip = (Number(page) - 1) * Number(limit);
 
-    const existingCourse = await this.systemDbService.course.findUnique({
-      where:{
-        uuid:courseUuid
-      }
-    })
-
-    if(!existingCourse){
-      throw new NotFoundException("Course not found")
+    const where: any = { status: CourseStatus.PUBLISHED, deleted_at: null };
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    if (tags) {
+      where.tags = { hasSome: Array.isArray(tags) ? tags : [tags] };
     }
 
-    const updateCourse = await this.systemDbService.course.update({
-      where:{
-        uuid:courseUuid
+    const [total, courses] = await Promise.all([
+      this.db.course.count({ where }),
+      this.db.course.findMany({
+        where,
+        skip,
+        take: Number(limit),
+        orderBy: { created_at: 'desc' },
+        select: {
+          uuid: true,
+          title: true,
+          description: true,
+          thumbnail: true,
+          tags: true,
+          status: true,
+          created_at: true,
+          teacher: { select: { uuid: true, first_name: true, last_name: true } },
+          _count: { select: { lessons: true, enrollments: true } },
+        },
+      }),
+    ]);
+
+    return { page: Number(page), limit: Number(limit), total, courses };
+  }
+
+  // ─── Get Teacher's Own Courses ────────────────────────────────────────────
+  async findMyCourses(teacherId: number, query: any) {
+    const { page = 1, limit = 12, search, status } = query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const where: any = { teacher_id: teacherId, deleted_at: null };
+    if (status) where.status = status;
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [total, courses] = await Promise.all([
+      this.db.course.count({ where }),
+      this.db.course.findMany({
+        where,
+        skip,
+        take: Number(limit),
+        orderBy: { created_at: 'desc' },
+        include: {
+          _count: { select: { lessons: true, enrollments: true } },
+        },
+      }),
+    ]);
+
+    return { page: Number(page), limit: Number(limit), total, courses };
+  }
+
+  // ─── Get Single Course ────────────────────────────────────────────────────
+  async findOne(uuid: string, userId?: number) {
+    const course = await this.db.course.findUnique({
+      where: { uuid },
+      include: {
+        teacher: { select: { uuid: true, first_name: true, last_name: true, email: true } },
+        lessons: {
+          where: { deleted_at: null },
+          orderBy: { order: 'asc' },
+          select: {
+            id: true,
+            uuid: true,
+            title: true,
+            description: true,
+            order: true,
+            duration: true,
+            video_url: true,
+          },
+        },
+        summaries: {
+          select: { summary: true, key_points: true, updated_at: true },
+        },
+        _count: { select: { enrollments: true, lessons: true } },
       },
-      data:{
-        title:updateCourseDto.title,
-        description:updateCourseDto.description,
-        thumbnail:updateCourseDto.thumbnail,
-        updated_by:user.id,
-        ...getTimestamps("update")
-      }
-    })
+    });
 
-    if(!updateCourse){
-      throw new ConflictException("Unable to update course")
+    if (!course || course.deleted_at) throw new NotFoundException('Course not found');
+
+    let isEnrolled = false;
+    let enrollmentUuid: string | null = null;
+    if (userId) {
+      const enrollment = await this.db.enrollment.findUnique({
+        where: { student_id_course_id: { student_id: userId, course_id: course.id } },
+        select: { uuid: true },
+      });
+      if (enrollment) {
+        isEnrolled = true;
+        enrollmentUuid = enrollment.uuid;
+      }
     }
 
-    return updateCourse
+    return { ...course, isEnrolled, enrollmentUuid };
   }
 
+  // ─── Update Course ────────────────────────────────────────────────────────
+  async update(uuid: string, dto: UpdateCourseDto, userId: number) {
+    const course = await this.db.course.findUnique({ where: { uuid } });
+    if (!course || course.deleted_at) throw new NotFoundException('Course not found');
+    if (course.teacher_id !== userId) throw new ForbiddenException('Only the course teacher can update it');
+
+    return this.db.course.update({
+      where: { uuid },
+      data: { ...dto, updated_by: userId, ...getTimestamps('update') },
+    });
+  }
+
+  // ─── Publish / Archive ────────────────────────────────────────────────────
+  async changeStatus(uuid: string, status: CourseStatus, userId: number) {
+    const course = await this.db.course.findUnique({ where: { uuid } });
+    if (!course || course.deleted_at) throw new NotFoundException('Course not found');
+    if (course.teacher_id !== userId) throw new ForbiddenException('Only the course teacher can change status');
+
+    return this.db.course.update({
+      where: { uuid },
+      data: { status, updated_by: userId, ...getTimestamps('update') },
+    });
+  }
+
+  // ─── Soft Delete ──────────────────────────────────────────────────────────
+  async remove(uuid: string, userId: number) {
+    const course = await this.db.course.findUnique({ where: { uuid } });
+    if (!course || course.deleted_at) throw new NotFoundException('Course not found');
+    if (course.teacher_id !== userId) throw new ForbiddenException('Only the course teacher can delete it');
+
+    return this.db.course.update({
+      where: { uuid },
+      data: { deleted_at: BigInt(Date.now()), updated_by: userId },
+    });
+  }
+
+  // ─── Student Performance (teacher view) ──────────────────────────────────
+  async getStudentPerformance(courseUuid: string, teacherId: number) {
+    const course = await this.db.course.findUnique({ where: { uuid: courseUuid } });
+    if (!course) throw new NotFoundException('Course not found');
+    if (course.teacher_id !== teacherId) throw new ForbiddenException('Access denied');
+
+    const enrollments = await this.db.enrollment.findMany({
+      where: { course_id: course.id },
+      include: {
+        student: { select: { uuid: true, first_name: true, last_name: true, email: true } },
+        lesson_progress: { include: { lesson: { select: { title: true, order: true } } } },
+        quiz_attempts: {
+          select: { score: true, total_questions: true, submitted_at: true },
+          orderBy: { created_at: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: { enrolled_at: 'desc' },
+    });
+
+    return enrollments.map((e) => ({
+      student: e.student,
+      status: e.status,
+      progress: e.progress,
+      enrolledAt: e.enrolled_at,
+      completedAt: e.completed_at,
+      latestQuizScore: e.quiz_attempts[0]?.score ?? null,
+      lessonsCompleted: e.lesson_progress.filter((lp) => lp.is_completed).length,
+    }));
+  }
 }

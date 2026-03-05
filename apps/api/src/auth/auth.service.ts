@@ -176,7 +176,8 @@ this.logger.log("invoking user.password.reset event with data:",userEventData)
 
     const accessToken = this.jwtService.sign({
       sub:user.id,
-      email:user.email
+      email:user.email,
+      role:user.role,
     })
 
     return{
@@ -205,13 +206,13 @@ this.logger.log("invoking user.password.reset event with data:",userEventData)
       throw new UnauthorizedException("Invalid token");
     }
 
-
     this.logger.debug(
       `token validated for user: ${JSON.stringify(user.email)}`,
     );
     return {
       id: user.id,
       email: user.email,
+      role: user.role,
     };
   }
 }
