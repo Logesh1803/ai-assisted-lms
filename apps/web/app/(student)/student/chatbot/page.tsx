@@ -29,6 +29,8 @@ import {
   FlaskConical,
   BarChart2,
   ListOrdered,
+  History,
+  X,
 } from "lucide-react";
 
 const SUBJECT_OPTIONS = [
@@ -55,6 +57,7 @@ export default function ChatbotPage() {
   const [conceptResults, setConceptResults] = useState<any[]>([]);
   const [explaining, setExplaining] = useState(false);
   const [conceptDialogOpen, setConceptDialogOpen] = useState(false);
+  const [mobileSessionsOpen, setMobileSessionsOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: sessions, isLoading: sessionsLoading } = useQuery({
@@ -156,6 +159,62 @@ export default function ChatbotPage() {
   };
 
   const sessionsList: any[] = (sessions as unknown as any[]) || [];
+
+  // Shared sessions list content — rendered inside both the desktop sidebar and mobile drawer
+  const sessionsListContent = (
+    <>
+      <div className="p-3 border-b">
+        <Button onClick={handleNewChat} size="sm" className="w-full">
+          <Plus className="h-4 w-4" />
+          New Chat
+        </Button>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {sessionsLoading ? (
+          <div className="p-3 space-y-2">
+            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+          </div>
+        ) : sessionsList.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-6 text-center text-muted-foreground h-full">
+            <MessageSquare className="h-8 w-8 mb-2 opacity-40" />
+            <p className="text-sm">No conversations yet</p>
+          </div>
+        ) : (
+          <ul className="p-2 space-y-1">
+            {sessionsList.map((session: any) => (
+              <li key={session.uuid}>
+                <div
+                  className={`group flex items-center justify-between gap-1 rounded-lg p-2 cursor-pointer transition-colors ${
+                    activeSessionUuid === session.uuid
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-accent"
+                  }`}
+                  onClick={() => { loadSession(session.uuid); setMobileSessionsOpen(false); }}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">
+                      {session.title || `Chat ${session.uuid.slice(0, 8)}`}
+                    </p>
+                    {session.createdAt && (
+                      <p className={`text-xs ${activeSessionUuid === session.uuid ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                        {formatDate(session.createdAt)}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(session.uuid); }}
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/10 hover:text-destructive transition-all"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </>
+  );
 
   return (
     <div className="space-y-4">
@@ -299,74 +358,67 @@ export default function ChatbotPage() {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-200px)] min-h-[500px]">
-        {/* Sessions Sidebar */}
-        <div className="lg:col-span-1 flex flex-col border rounded-xl overflow-hidden bg-card">
-          <div className="p-3 border-b">
-            <Button onClick={handleNewChat} size="sm" className="w-full">
-              <Plus className="h-4 w-4" />
-              New Chat
-            </Button>
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            {sessionsLoading ? (
-              <div className="p-3 space-y-2">
-                {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
-              </div>
-            ) : sessionsList.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-6 text-center text-muted-foreground h-full">
-                <MessageSquare className="h-8 w-8 mb-2 opacity-40" />
-                <p className="text-sm">No conversations yet</p>
-              </div>
-            ) : (
-              <ul className="p-2 space-y-1">
-                {sessionsList.map((session: any) => (
-                  <li key={session.uuid}>
-                    <div
-                      className={`group flex items-center justify-between gap-1 rounded-lg p-2 cursor-pointer transition-colors ${
-                        activeSessionUuid === session.uuid
-                          ? "bg-foreground text-background"
-                          : "hover:bg-accent"
-                      }`}
-                      onClick={() => loadSession(session.uuid)}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">
-                          {session.title || `Chat ${session.uuid.slice(0, 8)}`}
-                        </p>
-                        {session.createdAt && (
-                          <p className="text-xs text-muted-foreground">
-                            {formatDate(session.createdAt)}
-                          </p>
-                        )}
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteMutation.mutate(session.uuid);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/10 hover:text-destructive transition-all"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+      {/* ── Mobile Sessions Drawer backdrop ──────────────────────────────────── */}
+      {mobileSessionsOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 lg:hidden"
+          onClick={() => setMobileSessionsOpen(false)}
+        />
+      )}
+
+      {/* ── Mobile Sessions Drawer ────────────────────────────────────────────── */}
+      <div
+        className={`fixed inset-y-0 left-0 z-[51] flex flex-col w-72 bg-background border-r transform transition-transform duration-200 ease-in-out lg:hidden ${
+          mobileSessionsOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
+          <span className="font-semibold text-sm">Chat History</span>
+          <button
+            onClick={() => setMobileSessionsOpen(false)}
+            className="p-1 rounded hover:bg-accent"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        {sessionsListContent}
+      </div>
+
+      {/* ── Main layout: sidebar (desktop) + chat area ───────────────────────── */}
+      <div className="flex gap-4 h-[calc(100dvh-180px)] min-h-[480px]">
+
+        {/* Desktop Sessions Sidebar */}
+        <div className="hidden lg:flex lg:w-64 shrink-0 flex-col border rounded-xl overflow-hidden bg-card">
+          {sessionsListContent}
         </div>
 
         {/* Chat Area */}
-        <div className="lg:col-span-3 flex flex-col border rounded-xl overflow-hidden">
-          {/* Chat background — WhatsApp-inspired */}
+        <div className="flex-1 flex flex-col border rounded-xl overflow-hidden min-w-0">
+          {/* Mobile top bar: history toggle */}
+          <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30 lg:hidden">
+            <button
+              onClick={() => setMobileSessionsOpen(true)}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <History className="h-3.5 w-3.5" />
+              History
+            </button>
+            <span className="text-muted-foreground/40 text-xs">·</span>
+            <span className="text-xs text-muted-foreground truncate">
+              {activeSessionUuid
+                ? (sessionsList.find((s: any) => s.uuid === activeSessionUuid)?.title || "Chat")
+                : "New Chat"}
+            </span>
+          </div>
+
+          {/* Chat messages */}
           <div
             className="flex-1 overflow-y-auto p-4 space-y-1"
             style={{ background: "var(--chat-bg, #efeae2)" }}
           >
             {!activeSessionUuid && messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
-                <div className="rounded-full bg-white/80 p-5 mb-4 shadow-sm">
+                <div className="rounded-full bg-background/80 p-5 mb-4 shadow-sm border">
                   <Bot className="h-12 w-12 opacity-50" />
                 </div>
                 <h3 className="font-semibold text-lg text-foreground">AI Learning Assistant</h3>
@@ -383,7 +435,7 @@ export default function ChatbotPage() {
                     <button
                       key={prompt}
                       onClick={() => setMessage(prompt)}
-                      className="text-left px-3 py-2 text-xs bg-white/90 border rounded-lg hover:bg-white transition-colors shadow-sm"
+                      className="text-left px-3 py-2 text-xs bg-background border rounded-lg hover:bg-accent transition-colors shadow-sm"
                     >
                       {prompt}
                     </button>
@@ -430,15 +482,15 @@ export default function ChatbotPage() {
 
                   {/* Bubble */}
                   <div
-                    className={`relative max-w-[72%] px-3.5 py-2.5 shadow-sm text-sm leading-relaxed
+                    className={`relative max-w-[75%] px-3.5 py-2.5 shadow-sm text-sm leading-relaxed
                       ${isUser
-                        ? "bg-[#dcf8c6] text-gray-900 rounded-t-2xl rounded-bl-2xl rounded-br-sm"
-                        : "bg-white text-gray-900 rounded-t-2xl rounded-br-2xl rounded-bl-sm"
+                        ? "bg-primary text-primary-foreground rounded-t-2xl rounded-bl-2xl rounded-br-sm"
+                        : "bg-card text-card-foreground border rounded-t-2xl rounded-br-2xl rounded-bl-sm"
                       }`}
                   >
                     <p className="whitespace-pre-wrap">{msg.content}</p>
                     {msg.created_at && (
-                      <p className="text-[10px] text-gray-400 mt-1 text-right">
+                      <p className="text-[10px] mt-1 text-right opacity-60">
                         {new Date(msg.created_at).toLocaleTimeString("en-IN", {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -462,11 +514,11 @@ export default function ChatbotPage() {
                 <div className="h-7 w-7 rounded-full bg-foreground flex items-center justify-center shrink-0 mt-1 mr-1.5">
                   <Bot className="h-4 w-4 text-background" />
                 </div>
-                <div className="bg-white rounded-t-2xl rounded-br-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+                <div className="bg-card border rounded-t-2xl rounded-br-2xl rounded-bl-sm px-4 py-3 shadow-sm">
                   <div className="flex gap-1 items-center h-4">
-                    <div className="h-2 w-2 rounded-full bg-gray-400 animate-bounce" />
-                    <div className="h-2 w-2 rounded-full bg-gray-400 animate-bounce [animation-delay:0.15s]" />
-                    <div className="h-2 w-2 rounded-full bg-gray-400 animate-bounce [animation-delay:0.3s]" />
+                    <div className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce" />
+                    <div className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.15s]" />
+                    <div className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.3s]" />
                   </div>
                 </div>
               </div>
@@ -476,7 +528,7 @@ export default function ChatbotPage() {
           </div>
 
           {/* Input */}
-          <div className="p-3 border-t bg-[#f0f0f0]">
+          <div className="p-3 border-t bg-muted/40">
             <div className="flex gap-2 items-center">
               <Input
                 placeholder="Type a message..."
@@ -489,7 +541,7 @@ export default function ChatbotPage() {
                   }
                 }}
                 disabled={sendMutation.isPending}
-                className="rounded-full bg-white border-0 shadow-sm focus-visible:ring-1"
+                className="rounded-full bg-background focus-visible:ring-1"
               />
               <Button
                 onClick={handleSend}

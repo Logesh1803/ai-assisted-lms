@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "strict": false,
+    "outDir": "dist-seed",
+    "baseUrl": "."
+  },
+  "include": ["scripts/**/*", "libs/data-sources/generated/**/*"],
+  "exclude": ["node_modules"]
+}

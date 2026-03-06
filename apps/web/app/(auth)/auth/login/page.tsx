@@ -18,8 +18,8 @@ import { authApi } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 
 const loginSchema = z.object({
-  email: z.string().email("Enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  email: z.string().email("Enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -52,7 +52,14 @@ function LoginForm({ role }: { role: "STUDENT" | "TEACHER" }) {
         router.replace("/student/dashboard");
       }
     } catch (err: any) {
-      toast.error(err.message || "Login failed. Please check your credentials.");
+      const msg: string = err.message || "Login failed. Please check your credentials.";
+      if (msg.toLowerCase().includes("password")) {
+        form.setError("password", { message: "Incorrect password" });
+      } else if (msg.toLowerCase().includes("email") || msg.toLowerCase().includes("user") || msg.toLowerCase().includes("not found")) {
+        form.setError("email", { message: "No account found with this email" });
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -60,7 +67,8 @@ function LoginForm({ role }: { role: "STUDENT" | "TEACHER" }) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <fieldset disabled={isLoading} className="space-y-4 border-0 p-0 m-0 min-w-0">
         <FormField
           control={form.control}
           name="email"
@@ -68,7 +76,7 @@ function LoginForm({ role }: { role: "STUDENT" | "TEACHER" }) {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder="you@example.com" type="email" {...field} />
+                <Input placeholder="you@example.com" type="email" autoComplete="email" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -82,7 +90,7 @@ function LoginForm({ role }: { role: "STUDENT" | "TEACHER" }) {
               <FormLabel>Password</FormLabel>
               <FormControl>
                 <div className="relative">
-                  <Input placeholder="••••••••" type={showPassword ? "text" : "password"} {...field} className="pr-10" />
+                  <Input placeholder="••••••••" type={showPassword ? "text" : "password"} autoComplete="current-password" {...field} className="pr-10" />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
@@ -97,12 +105,12 @@ function LoginForm({ role }: { role: "STUDENT" | "TEACHER" }) {
             </FormItem>
           )}
         />
-        <div className="flex items-center justify-end">
-          <Link href="/auth/forgot-password" className="text-sm text-primary hover:underline">
+        <div className="flex items-center justify-end -mt-2">
+          <Link href="/auth/forgot-password" className="text-xs text-muted-foreground hover:text-primary hover:underline">
             Forgot password?
           </Link>
         </div>
-        <Button type="submit" className="w-full" disabled={isLoading}>
+        <Button type="submit" className="w-full h-10 font-semibold" disabled={isLoading}>
           {isLoading && <Loader2 className="animate-spin" />}
           Sign In
         </Button>
@@ -115,6 +123,7 @@ function LoginForm({ role }: { role: "STUDENT" | "TEACHER" }) {
             Register
           </Link>
         </p>
+        </fieldset>
       </form>
     </Form>
   );
@@ -123,20 +132,20 @@ function LoginForm({ role }: { role: "STUDENT" | "TEACHER" }) {
 export default function LoginPage() {
   return (
     <Card className="shadow-xl border-0">
-      <CardHeader className="text-center space-y-2">
+      <CardHeader className="text-center space-y-2 pb-4 pt-7">
         <div className="flex justify-center">
           <div className="rounded-full bg-primary/10 p-3">
-            <GraduationCap className="h-8 w-8 text-primary" />
+            <GraduationCap className="h-7 w-7 text-primary" />
           </div>
         </div>
-        <CardTitle className="text-2xl font-bold">Welcome to ThinkBloom</CardTitle>
-        <CardDescription>Sign in to your account to continue learning</CardDescription>
+        <CardTitle className="text-xl font-bold">Sign in to ThinkBloom</CardTitle>
+        <CardDescription>Choose your role and enter your credentials</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-6 pb-7">
         <Tabs defaultValue="student" className="w-full">
-          <TabsList className="grid grid-cols-2 w-full mb-6">
-            <TabsTrigger value="student">Student</TabsTrigger>
-            <TabsTrigger value="teacher">Teacher</TabsTrigger>
+          <TabsList className="grid grid-cols-2 w-full mb-5">
+            <TabsTrigger value="student" className="text-sm">Student</TabsTrigger>
+            <TabsTrigger value="teacher" className="text-sm">Teacher</TabsTrigger>
           </TabsList>
           <TabsContent value="student">
             <LoginForm role="STUDENT" />

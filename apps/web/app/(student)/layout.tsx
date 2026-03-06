@@ -6,6 +6,7 @@ import { Menu, X } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
+import { MobileNav } from "@/components/layout/mobile-nav";
 import { Button } from "@/components/ui/button";
 import { studentNavItems } from "@/config/nav";
 import { cn } from "@/lib/utils";
@@ -79,11 +80,14 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           <Breadcrumbs />
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-5 md:p-7 lg:p-8">
+        {/* Page content — extra bottom padding on mobile for the bottom nav */}
+        <main className="flex-1 overflow-y-auto p-5 pb-20 md:p-7 md:pb-7 lg:p-8 lg:pb-8">
           {children}
         </main>
       </div>
+
+      {/* ── Mobile Bottom Navigation ─────────────────────────────── */}
+      <MobileNav navItems={studentNavItems} />
     </div>
   );
 }

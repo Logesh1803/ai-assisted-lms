@@ -18,9 +18,22 @@ import { Badge } from "@/components/ui/badge";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 
 const createSchema = z.object({
-  title: z.string().min(3, "Title must be at least 3 characters"),
-  description: z.string().optional(),
-  thumbnail: z.string().optional().or(z.literal("")),
+  title: z
+    .string()
+    .min(3, "Title must be at least 3 characters")
+    .max(200, "Title must be under 200 characters"),
+  description: z
+    .string()
+    .max(2000, "Description must be under 2000 characters")
+    .optional(),
+  thumbnail: z
+    .string()
+    .refine(
+      (val) => !val || /^https?:\/\/.+/.test(val),
+      "Enter a valid URL starting with http:// or https://"
+    )
+    .optional()
+    .or(z.literal("")),
   tagsInput: z.string().optional(),
 });
 
@@ -100,7 +113,8 @@ export default function CreateCoursePage() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <fieldset disabled={isLoading} className="space-y-6 border-0 p-0 m-0 min-w-0">
               <FormField
                 control={form.control}
                 name="title"
@@ -190,6 +204,7 @@ export default function CreateCoursePage() {
                   </Button>
                 </Link>
               </div>
+              </fieldset>
             </form>
           </Form>
         </CardContent>
