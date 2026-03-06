@@ -30,60 +30,132 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   ThinkBloom Design System — Clean, minimal, Udemy/Guvi-style
+   Single primary color + neutral gray scale. No color noise.
+   ───────────────────────────────────────────────────────────────────────── */
+
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.145 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.145 0 0);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
+  --radius: 0.5rem;
+
+  /* Neutral base */
+  --background:           oklch(1 0 0);          /* pure white */
+  --foreground:           oklch(0.13 0 0);        /* #111827  */
+
+  --card:                 oklch(1 0 0);
+  --card-foreground:      oklch(0.13 0 0);
+
+  --popover:              oklch(1 0 0);
+  --popover-foreground:   oklch(0.13 0 0);
+
+  /* Primary — Indigo (one brand color, used only for CTAs & active states) */
+  --primary:              oklch(0.47 0.20 264);   /* #4338ca  */
+  --primary-foreground:   oklch(1 0 0);           /* white    */
+
+  /* Grays — used for everything else */
+  --secondary:            oklch(0.96 0 0);        /* gray-100 */
+  --secondary-foreground: oklch(0.20 0 0);        /* gray-800 */
+
+  --muted:                oklch(0.97 0 0);        /* gray-50  */
+  --muted-foreground:     oklch(0.44 0 0);        /* gray-500 */
+
+  --accent:               oklch(0.95 0 0);        /* gray-100 */
+  --accent-foreground:    oklch(0.20 0 0);
+
+  --destructive:          oklch(0.577 0.245 27);  /* red      */
+  --destructive-foreground: oklch(1 0 0);
+
+  --border:               oklch(0.90 0 0);        /* gray-200 */
+  --input:                oklch(0.90 0 0);
+  --ring:                 oklch(0.47 0.20 264);   /* same as primary */
+
+  --sidebar:              oklch(0.98 0 0);        /* near-white */
+  --sidebar-foreground:   oklch(0.13 0 0);
+
+  /* Chat — minimal, neutral tones */
+  --chat-bg:              #f3f4f6;                /* gray-100 */
+  --chat-user-bg:         #e0e7ff;                /* indigo-100 */
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.145 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.985 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
+  --background:           oklch(0.13 0 0);
+  --foreground:           oklch(0.97 0 0);
+
+  --card:                 oklch(0.18 0 0);
+  --card-foreground:      oklch(0.97 0 0);
+
+  --popover:              oklch(0.18 0 0);
+  --popover-foreground:   oklch(0.97 0 0);
+
+  --primary:              oklch(0.68 0.16 264);   /* lighter indigo for dark */
+  --primary-foreground:   oklch(0.13 0 0);
+
+  --secondary:            oklch(0.22 0 0);
+  --secondary-foreground: oklch(0.97 0 0);
+
+  --muted:                oklch(0.22 0 0);
+  --muted-foreground:     oklch(0.55 0 0);
+
+  --accent:               oklch(0.25 0 0);
+  --accent-foreground:    oklch(0.97 0 0);
+
+  --destructive:          oklch(0.65 0.22 27);
+  --destructive-foreground: oklch(0.97 0 0);
+
+  --border:               oklch(1 0 0 / 10%);
+  --input:                oklch(1 0 0 / 12%);
+  --ring:                 oklch(0.68 0.16 264);
+
+  --sidebar:              oklch(0.16 0 0);
+  --sidebar-foreground:   oklch(0.97 0 0);
+
+  --chat-bg:              #1f2937;                /* gray-800  */
+  --chat-user-bg:         #312e81;                /* indigo-900 */
 }
+
+/* ── Base reset ──────────────────────────────────────────────────────────── */
 
 * {
   border-color: var(--border);
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+  /* prevent content shift on scrollbar appear (desktop) */
+  scrollbar-gutter: stable;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  /* Safe area for PWA + notch phones */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ── Scrollbar — subtle, neutral ─────────────────────────────────────────── */
+
+::-webkit-scrollbar              { width: 5px; height: 5px; }
+::-webkit-scrollbar-track        { background: transparent; }
+::-webkit-scrollbar-thumb        { background: oklch(0.80 0 0); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover  { background: oklch(0.65 0 0); }
+.dark ::-webkit-scrollbar-thumb       { background: oklch(0.35 0 0); }
+.dark ::-webkit-scrollbar-thumb:hover { background: oklch(0.45 0 0); }
+
+/* ── Smooth transitions ──────────────────────────────────────────────────── */
+
+button, a, [role="button"] {
+  transition-property: color, background-color, border-color, box-shadow, opacity;
+  transition-duration: 120ms;
+  transition-timing-function: ease;
+}
+
+/* ── Focus ring — accessible, on-brand ───────────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
 }

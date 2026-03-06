@@ -26,10 +26,22 @@ import {
 } from "@/components/ui/form";
 
 const createLessonSchema = z.object({
-  title: z.string().min(2, "Title must be at least 2 characters"),
-  description: z.string().optional(),
+  title: z
+    .string()
+    .min(2, "Title must be at least 2 characters")
+    .max(200, "Title must be under 200 characters"),
+  description: z
+    .string()
+    .max(2000, "Description must be under 2000 characters")
+    .optional(),
   content: z.string().optional(),
-  order: z.string().optional(),
+  order: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || (/^\d+$/.test(val) && parseInt(val, 10) >= 1),
+      "Order must be a positive whole number"
+    ),
 });
 
 type CreateLessonValues = z.infer<typeof createLessonSchema>;
@@ -108,7 +120,8 @@ export default function CreateLessonPage({
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <fieldset disabled={isLoading} className="space-y-6 border-0 p-0 m-0 min-w-0">
               <FormField
                 control={form.control}
                 name="title"
@@ -196,6 +209,7 @@ export default function CreateLessonPage({
                   </Button>
                 </Link>
               </div>
+              </fieldset>
             </form>
           </Form>
         </CardContent>

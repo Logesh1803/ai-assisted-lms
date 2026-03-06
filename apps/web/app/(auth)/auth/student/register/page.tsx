@@ -12,15 +12,19 @@ import { Loader2, GraduationCap, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { authApi } from "@/lib/api";
 
 const registerSchema = z
   .object({
-    firstName: z.string().min(2, "First name must be at least 2 characters"),
-    lastName: z.string().optional(),
-    email: z.string().email("Enter a valid email"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    firstName: z.string().min(2, "First name must be at least 2 characters").max(50, "First name is too long"),
+    lastName: z.string().max(50, "Last name is too long").optional(),
+    email: z.string().email("Enter a valid email address"),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Za-z]/, "Password must contain at least one letter")
+      .regex(/[\d\W]/, "Password must contain at least one number or symbol"),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -60,7 +64,12 @@ export default function StudentRegisterPage() {
       toast.success("Account created! Please sign in.");
       router.push("/auth/login");
     } catch (err: any) {
-      toast.error(err.message || "Registration failed. Please try again.");
+      const msg: string = err.message || "Registration failed. Please try again.";
+      if (msg.toLowerCase().includes("email")) {
+        form.setError("email", { message: "An account with this email already exists" });
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -68,18 +77,19 @@ export default function StudentRegisterPage() {
 
   return (
     <Card className="shadow-xl border-0">
-      <CardHeader className="text-center space-y-2">
+      <CardHeader className="text-center space-y-2 pb-4 pt-7">
         <div className="flex justify-center">
           <div className="rounded-full bg-primary/10 p-3">
-            <GraduationCap className="h-8 w-8 text-primary" />
+            <GraduationCap className="h-7 w-7 text-primary" />
           </div>
         </div>
-        <CardTitle className="text-2xl font-bold">Create Student Account</CardTitle>
+        <CardTitle className="text-xl font-bold">Create your account</CardTitle>
         <CardDescription>Join ThinkBloom and start learning today</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-6 pb-7">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <fieldset disabled={isLoading} className="space-y-4 border-0 p-0 m-0 min-w-0">
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -115,7 +125,7 @@ export default function StudentRegisterPage() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="you@example.com" type="email" {...field} />
+                    <Input placeholder="you@example.com" type="email" autoComplete="email" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -129,12 +139,13 @@ export default function StudentRegisterPage() {
                   <FormLabel>Password</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <Input placeholder="••••••••" type={showPassword ? "text" : "password"} {...field} className="pr-10" />
+                      <Input placeholder="••••••••" type={showPassword ? "text" : "password"} autoComplete="new-password" {...field} className="pr-10" />
                       <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                   </FormControl>
+                  <FormDescription>At least 8 characters with a letter and a number or symbol.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -147,7 +158,7 @@ export default function StudentRegisterPage() {
                   <FormLabel>Confirm Password</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <Input placeholder="••••••••" type={showConfirm ? "text" : "password"} {...field} className="pr-10" />
+                      <Input placeholder="••••••••" type={showConfirm ? "text" : "password"} autoComplete="new-password" {...field} className="pr-10" />
                       <button type="button" onClick={() => setShowConfirm((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
                         {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -157,7 +168,7 @@ export default function StudentRegisterPage() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full h-10 font-semibold" disabled={isLoading}>
               {isLoading && <Loader2 className="animate-spin" />}
               Create Account
             </Button>
@@ -167,6 +178,7 @@ export default function StudentRegisterPage() {
                 Sign in
               </Link>
             </p>
+            </fieldset>
           </form>
         </Form>
       </CardContent>

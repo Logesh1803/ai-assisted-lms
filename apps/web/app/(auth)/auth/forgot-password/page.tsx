@@ -15,7 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { authApi } from "@/lib/api";
 
 const forgotSchema = z.object({
-  email: z.string().email("Enter a valid email"),
+  email: z.string().email("Enter a valid email address"),
 });
 
 type ForgotFormValues = z.infer<typeof forgotSchema>;
@@ -43,20 +43,20 @@ export default function ForgotPasswordPage() {
 
   return (
     <Card className="shadow-xl border-0">
-      <CardHeader className="text-center space-y-2">
+      <CardHeader className="text-center space-y-2 pb-4 pt-7">
         <div className="flex justify-center">
           <div className="rounded-full bg-primary/10 p-3">
-            <Mail className="h-8 w-8 text-primary" />
+            <Mail className="h-7 w-7 text-primary" />
           </div>
         </div>
-        <CardTitle className="text-2xl font-bold">Forgot Password</CardTitle>
+        <CardTitle className="text-xl font-bold">Forgot Password</CardTitle>
         <CardDescription>
           {submitted
             ? "Check your email for reset instructions"
             : "Enter your email and we'll send you a reset link"}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-6 pb-7">
         {submitted ? (
           <div className="text-center space-y-4">
             <div className="rounded-lg bg-muted p-4">
@@ -75,7 +75,8 @@ export default function ForgotPasswordPage() {
           </div>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <fieldset disabled={isLoading} className="space-y-4 border-0 p-0 m-0 min-w-0">
               <FormField
                 control={form.control}
                 name="email"
@@ -83,13 +84,13 @@ export default function ForgotPasswordPage() {
                   <FormItem>
                     <FormLabel>Email Address</FormLabel>
                     <FormControl>
-                      <Input placeholder="you@example.com" type="email" {...field} />
+                      <Input placeholder="you@example.com" type="email" autoComplete="email" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full h-10 font-semibold" disabled={isLoading}>
                 {isLoading && <Loader2 className="animate-spin" />}
                 Send Reset Link
               </Button>
@@ -99,6 +100,7 @@ export default function ForgotPasswordPage() {
                   Back to Login
                 </Link>
               </div>
+              </fieldset>
             </form>
           </Form>
         )}

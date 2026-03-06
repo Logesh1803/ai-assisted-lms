@@ -380,73 +380,111 @@ export default function LessonLearnPage({
                     </div>
                   )}
 
-                  {quizState === "active" && (
-                    <div className="space-y-6">
-                      {quizQuestions.map((q, index) => (
-                        <div key={q.id} className="space-y-3">
-                          <div className="flex items-start gap-2">
-                            <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-medium shrink-0 mt-0.5">
-                              {index + 1}
-                            </span>
-                            <div className="flex-1">
-                              <p className="font-medium">{q.question}</p>
-                              <Badge variant="outline" className="text-xs mt-1">
-                                {q.topic}
-                              </Badge>
-                            </div>
+                  {quizState === "active" && (() => {
+                    const answeredCount = quizQuestions.filter(
+                      (q) => quizAnswers[q.id]?.trim()
+                    ).length;
+                    const allAnswered = answeredCount === quizQuestions.length;
+
+                    return (
+                      <div className="space-y-6">
+                        {/* Progress indicator */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{answeredCount} of {quizQuestions.length} answered</span>
+                            {!allAnswered && (
+                              <span className="text-amber-500 font-medium">
+                                Answer all questions to submit
+                              </span>
+                            )}
                           </div>
-
-                          {q.type === "MCQ" && q.options ? (
-                            <div className="space-y-2 ml-8">
-                              {q.options.map((option, optIdx) => (
-                                <label
-                                  key={optIdx}
-                                  className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                                    quizAnswers[q.id] === option
-                                      ? "border-foreground bg-muted"
-                                      : "hover:bg-accent"
-                                  }`}
-                                >
-                                  <input
-                                    type="radio"
-                                    name={q.id}
-                                    value={option}
-                                    checked={quizAnswers[q.id] === option}
-                                    onChange={() =>
-                                      setQuizAnswers((prev) => ({ ...prev, [q.id]: option }))
-                                    }
-                                    className="accent-primary"
-                                  />
-                                  <span className="text-sm">{option}</span>
-                                </label>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="ml-8">
-                              <Textarea
-                                placeholder="Type your answer here..."
-                                value={quizAnswers[q.id] || ""}
-                                onChange={(e) =>
-                                  setQuizAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
-                                }
-                                rows={3}
-                              />
-                            </div>
-                          )}
-
-                          {index < quizQuestions.length - 1 && <Separator />}
+                          <Progress
+                            value={(answeredCount / quizQuestions.length) * 100}
+                            className="h-1.5"
+                          />
                         </div>
-                      ))}
 
-                      <Button
-                        className="w-full"
-                        onClick={handleSubmitQuiz}
-                        disabled={quizQuestions.length === 0}
-                      >
-                        Submit Quiz
-                      </Button>
-                    </div>
-                  )}
+                        {quizQuestions.map((q, index) => {
+                          const isAnswered = !!quizAnswers[q.id]?.trim();
+                          return (
+                            <div key={q.id} className="space-y-3">
+                              <div className="flex items-start gap-2">
+                                <span className={`flex items-center justify-center h-6 w-6 rounded-full text-xs font-medium shrink-0 mt-0.5 transition-colors ${
+                                  isAnswered
+                                    ? "bg-green-500/15 text-green-600 dark:text-green-400"
+                                    : "bg-primary/10 text-primary"
+                                }`}>
+                                  {index + 1}
+                                </span>
+                                <div className="flex-1">
+                                  <p className="font-medium">{q.question}</p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <Badge variant="outline" className="text-xs">
+                                      {q.topic}
+                                    </Badge>
+                                    {!isAnswered && (
+                                      <span className="text-xs text-amber-500">Unanswered</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {q.type === "MCQ" && q.options ? (
+                                <div className="space-y-2 ml-8">
+                                  {q.options.map((option, optIdx) => (
+                                    <label
+                                      key={optIdx}
+                                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                                        quizAnswers[q.id] === option
+                                          ? "border-primary bg-primary/10 text-primary"
+                                          : "hover:bg-accent"
+                                      }`}
+                                    >
+                                      <input
+                                        type="radio"
+                                        name={q.id}
+                                        value={option}
+                                        checked={quizAnswers[q.id] === option}
+                                        onChange={() =>
+                                          setQuizAnswers((prev) => ({ ...prev, [q.id]: option }))
+                                        }
+                                        className="accent-primary"
+                                      />
+                                      <span className="text-sm">{option}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="ml-8">
+                                  <Textarea
+                                    placeholder="Type your answer here..."
+                                    value={quizAnswers[q.id] || ""}
+                                    onChange={(e) =>
+                                      setQuizAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
+                                    }
+                                    rows={3}
+                                  />
+                                </div>
+                              )}
+
+                              {index < quizQuestions.length - 1 && <Separator />}
+                            </div>
+                          );
+                        })}
+
+                        <Button
+                          className="w-full"
+                          onClick={handleSubmitQuiz}
+                          disabled={!allAnswered}
+                          title={!allAnswered ? `Answer all ${quizQuestions.length} questions to submit` : undefined}
+                        >
+                          {allAnswered
+                            ? "Submit Quiz"
+                            : `Answer ${quizQuestions.length - answeredCount} more question${quizQuestions.length - answeredCount !== 1 ? "s" : ""} to submit`}
+                        </Button>
+                      </div>
+                    );
+                  })()}
 
                   {quizState === "submitted" && quizResult && (() => {
                     const r = quizResult as any;
@@ -557,7 +595,7 @@ export default function LessonLearnPage({
                         href={`/student/courses/${uuid}/learn/${l.id}`}
                         className={`flex items-start gap-2 px-4 py-3 text-sm transition-colors ${
                           isCurrent
-                            ? "bg-foreground text-background font-medium"
+                            ? "bg-primary/10 text-primary font-semibold border-l-2 border-primary"
                             : "hover:bg-accent text-muted-foreground"
                         }`}
                       >
