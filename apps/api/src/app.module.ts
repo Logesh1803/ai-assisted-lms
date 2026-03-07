@@ -17,6 +17,7 @@ import { UploadModule } from './upload/upload.module';
 import { GeminiModule } from './gemini/gemini.module';
 import { LessonProgressModule } from './lesson-progress/lesson-progress.module';
 import { ChatbotModule } from './chatbot/chatbot.module';
+import { DiscussionModule } from './discussion/discussion.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { ChatbotModule } from './chatbot/chatbot.module';
     GeminiModule,
     LessonProgressModule,
     ChatbotModule,
+    DiscussionModule,
   ],
   controllers: [],
   providers: [

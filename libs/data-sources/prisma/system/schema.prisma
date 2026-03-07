@@ -52,9 +52,11 @@ model User {
   tokens         UserToken[]
   courses        Course[]
   enrollments    Enrollment[]
-  files          ImportedFile[]
-  quiz_attempts  QuizAttempt[]
-  chat_sessions  ChatSession[]
+  files               ImportedFile[]
+  quiz_attempts       QuizAttempt[]
+  chat_sessions       ChatSession[]
+  discussion_threads  DiscussionThread[]
+  discussion_replies  DiscussionReply[]
 
   @@map("users")
 }
@@ -89,10 +91,11 @@ model Course {
   updated_at  BigInt?
   deleted_at  BigInt?
   teacher     User           @relation(fields: [teacher_id], references: [id])
-  lessons     Lesson[]
-  enrollments Enrollment[]
-  files       ImportedFile[]
-  summaries   AISummary[]
+  lessons            Lesson[]
+  enrollments        Enrollment[]
+  files              ImportedFile[]
+  summaries          AISummary[]
+  discussion_threads DiscussionThread[]
 
   @@index([teacher_id])
   @@index([status])
@@ -275,4 +278,39 @@ model ChatMessage {
 
   @@index([session_id])
   @@map("chat_messages")
+}
+
+model DiscussionThread {
+  id         Int               @id @default(autoincrement())
+  uuid       String            @unique @default(dbgenerated("gen_random_uuid()"))
+  course_id  Int
+  user_id    Int
+  title      String
+  content    String            @db.Text
+  is_pinned  Boolean           @default(false)
+  created_at BigInt
+  updated_at BigInt?
+  course     Course            @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  user       User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  replies    DiscussionReply[]
+
+  @@index([course_id])
+  @@index([user_id])
+  @@map("discussion_threads")
+}
+
+model DiscussionReply {
+  id         Int              @id @default(autoincrement())
+  uuid       String           @unique @default(dbgenerated("gen_random_uuid()"))
+  thread_id  Int
+  user_id    Int
+  content    String           @db.Text
+  created_at BigInt
+  updated_at BigInt?
+  thread     DiscussionThread @relation(fields: [thread_id], references: [id], onDelete: Cascade)
+  user       User             @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([thread_id])
+  @@index([user_id])
+  @@map("discussion_replies")
 }

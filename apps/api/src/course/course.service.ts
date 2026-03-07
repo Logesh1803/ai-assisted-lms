@@ -8,10 +8,14 @@ import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { CourseStatus, SystemsDatabaseService } from '@thinkbloom/data-sources';
 import { getTimestamps } from 'utils/src/date-formatter.service';
+import { GeminiService } from '../gemini/gemini.service';
 
 @Injectable()
 export class CourseService {
-  constructor(private db: SystemsDatabaseService) {}
+  constructor(
+    private db: SystemsDatabaseService,
+    private geminiService: GeminiService,
+  ) {}
 
   // ─── Create Course (teacher only) ─────────────────────────────────────────
   async create(dto: CreateCourseDto, userId: number) {
@@ -106,7 +110,22 @@ export class CourseService {
       }),
     ]);
 
-    return { page: Number(page), limit: Number(limit), total, courses };
+    // Attach quiz attempt count per course (no direct Prisma relation, so groupBy)
+    const courseIds = courses.map((c) => c.id);
+    const quizCounts = courseIds.length
+      ? await this.db.quizAttempt.groupBy({
+          by: ['course_id'],
+          where: { course_id: { in: courseIds }, submitted_at: { not: null } },
+          _count: { id: true },
+        })
+      : [];
+    const quizCountMap = new Map(quizCounts.map((q) => [q.course_id, q._count.id]));
+    const coursesWithQuiz = courses.map((c) => ({
+      ...c,
+      quizAttemptCount: quizCountMap.get(c.id) ?? 0,
+    }));
+
+    return { page: Number(page), limit: Number(limit), total, courses: coursesWithQuiz };
   }
 
   // ─── Get Single Course ────────────────────────────────────────────────────
@@ -139,18 +158,20 @@ export class CourseService {
 
     let isEnrolled = false;
     let enrollmentUuid: string | null = null;
+    let enrollmentProgress = 0;
     if (userId) {
       const enrollment = await this.db.enrollment.findUnique({
         where: { student_id_course_id: { student_id: userId, course_id: course.id } },
-        select: { uuid: true },
+        select: { uuid: true, progress: true },
       });
       if (enrollment) {
         isEnrolled = true;
         enrollmentUuid = enrollment.uuid;
+        enrollmentProgress = enrollment.progress;
       }
     }
 
-    return { ...course, isEnrolled, enrollmentUuid };
+    return { ...course, isEnrolled, enrollmentUuid, enrollmentProgress };
   }
 
   // ─── Update Course ────────────────────────────────────────────────────────
@@ -174,6 +195,55 @@ export class CourseService {
     return this.db.course.update({
       where: { uuid },
       data: { status, updated_by: userId, ...getTimestamps('update') },
+    });
+  }
+
+  // ─── AI: Generate Course from Prompt ─────────────────────────────────────
+  async generateFromPrompt(prompt: string, userId: number) {
+    const generated = await this.geminiService.generateCourseFromPrompt(prompt);
+
+    const now = BigInt(Date.now());
+
+    const existing = await this.db.course.findFirst({
+      where: { title: generated.title, teacher_id: userId },
+    });
+    const title = existing ? `${generated.title} (2)` : generated.title;
+
+    const course = await this.db.course.create({
+      data: {
+        teacher_id: userId,
+        title,
+        description: generated.description,
+        tags: generated.tags ?? [],
+        status: CourseStatus.DRAFT,
+        created_by: userId,
+        updated_by: userId,
+        ...getTimestamps('create'),
+      },
+    });
+
+    if (generated.lessons?.length) {
+      await this.db.lesson.createMany({
+        data: generated.lessons.map((l) => ({
+          course_id: course.id,
+          title: l.title,
+          description: l.description,
+          content: l.content,
+          order: l.order,
+          created_by: userId,
+          updated_by: userId,
+          created_at: now,
+        })),
+      });
+    }
+
+    return this.db.course.findUnique({
+      where: { id: course.id },
+      include: {
+        teacher: { select: { uuid: true, first_name: true, last_name: true } },
+        lessons: { where: { deleted_at: null }, orderBy: { order: 'asc' } },
+        _count: { select: { lessons: true, enrollments: true } },
+      },
     });
   }
 

@@ -301,6 +301,73 @@ Respond ONLY in this exact JSON format:
     );
   }
 
+  // ─── Generate Course from Prompt ─────────────────────────────────────────
+
+  async generateCourseFromPrompt(prompt: string): Promise<{
+    title: string;
+    description: string;
+    tags: string[];
+    lessons: { title: string; description: string; content: string; order: number }[];
+  }> {
+    const fullPrompt = `You are an expert course creator for an online learning platform. Based on the following teacher's description, generate a complete course structure.
+
+Teacher's description: "${prompt}"
+
+Create a well-structured course with:
+1. A clear, engaging course title
+2. A compelling description (2-3 sentences)
+3. 3-5 relevant tags
+4. 5-8 lessons, each with a title, short description, and detailed content (minimum 3 paragraphs per lesson)
+
+Respond ONLY with this exact JSON format:
+{
+  "title": "...",
+  "description": "...",
+  "tags": ["...", "..."],
+  "lessons": [
+    {
+      "order": 1,
+      "title": "...",
+      "description": "One sentence describing the lesson",
+      "content": "Detailed lesson content with multiple paragraphs covering the topic thoroughly..."
+    }
+  ]
+}`;
+
+    const text = await this.generate(fullPrompt);
+    this.logger.log('Generated course structure from prompt');
+    return this.parseJson(text);
+  }
+
+  // ─── Student Notes from Summary ───────────────────────────────────────────
+
+  async generateStudentNotesFromSummary(
+    courseTitle: string,
+    summary: string,
+    keyPoints: string[],
+  ): Promise<string> {
+    const prompt = `You are a study assistant helping a student create personal study notes.
+
+Course: "${courseTitle}"
+
+Course Summary:
+${summary}
+
+Key Points:
+${keyPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}
+
+Generate comprehensive, student-friendly study notes in markdown format including:
+- ## Key Concepts (expandable explanations of each key point)
+- ## Important Terms & Definitions
+- ## Summary in Simple Words (simplified explanation)
+- ## Quick Review Questions (5 questions with answers)
+- ## Study Checklist (actionable items)
+
+Return only the markdown content, no JSON wrapper.`;
+
+    return (await this.generate(prompt)).trim();
+  }
+
   // ─── Concept Explanation (same word, different subjects) ──────────────────
 
   async explainConcept(

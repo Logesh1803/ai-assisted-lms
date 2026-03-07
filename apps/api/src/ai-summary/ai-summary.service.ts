@@ -69,6 +69,23 @@ export class AiSummaryService {
     return summary;
   }
 
+  // ============== GENERATE STUDENT NOTES FROM SUMMARY ==============
+  async generateStudentNotes(courseUuid: string): Promise<{ notes: string }> {
+    const course = await this.prisma.course.findUnique({ where: { uuid: courseUuid } });
+    if (!course) throw new NotFoundException('Course not found');
+
+    const summary = await this.prisma.aISummary.findUnique({ where: { course_id: course.id } });
+    if (!summary) throw new NotFoundException('No summary found. Generate a course summary first.');
+
+    const notes = await this.geminiService.generateStudentNotesFromSummary(
+      course.title,
+      summary.summary,
+      (summary.key_points as string[]) ?? [],
+    );
+
+    return { notes };
+  }
+
   // ============== DELETE SUMMARY ==============
   async delete(courseUuid: string) {
     const course = await this.prisma.course.findUnique({ where: { uuid: courseUuid } });

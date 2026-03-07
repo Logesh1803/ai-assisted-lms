@@ -22,7 +22,7 @@ export default function TeacherDashboard() {
   const totalCourses      = courses.length;
   const publishedCourses  = courses.filter((c: any) => c.status === "PUBLISHED").length;
   const totalStudents     = courses.reduce((acc: number, c: any) => acc + (c._count?.enrollments || 0), 0);
-  const totalQuizAttempts = courses.reduce((acc: number, c: any) => acc + (c.quizAttemptCount || 0), 0);
+  const totalQuizAttempts = courses.reduce((acc: number, c: any) => acc + (c.quizAttemptCount ?? 0), 0);
 
   return (
     <div className="space-y-8">

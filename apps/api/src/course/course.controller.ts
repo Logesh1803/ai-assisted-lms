@@ -31,6 +31,12 @@ export class CourseController {
     return this.courseService.create(dto, req.user.id);
   }
 
+  // POST /courses/generate-from-prompt — AI course generation
+  @Post('generate-from-prompt')
+  generateFromPrompt(@Body('prompt') prompt: string, @Request() req) {
+    return this.courseService.generateFromPrompt(prompt, req.user.id);
+  }
+
   // GET /courses — all published courses (student browse)
   @Get()
   findAll(@Query() query: any) {

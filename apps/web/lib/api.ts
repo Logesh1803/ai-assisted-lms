@@ -49,6 +49,8 @@ export const coursesApi = {
   getMine: (params?: any) => api.get("/courses/mine", { params }),
   getOne: (uuid: string) => api.get(`/courses/${uuid}`),
   create: (data: any) => api.post("/courses", data),
+  generateFromPrompt: (prompt: string) =>
+    api.post("/courses/generate-from-prompt", { prompt }),
   update: (uuid: string, data: any) => api.put(`/courses/${uuid}`, data),
   changeStatus: (uuid: string, status: string) =>
     api.patch(`/courses/${uuid}/status`, { status }),
@@ -130,6 +132,26 @@ export const summaryApi = {
   generate: (courseUuid: string) =>
     api.post(`/ai-summary/${courseUuid}/generate`),
   get: (courseUuid: string) => api.get(`/ai-summary/${courseUuid}`),
+  generateStudentNotes: (courseUuid: string) =>
+    api.post(`/ai-summary/${courseUuid}/my-notes`),
+};
+
+// ─── Discussion ───────────────────────────────────────────────────────────
+export const discussionApi = {
+  getThreads: (courseUuid: string, params?: any) =>
+    api.get(`/discussion/courses/${courseUuid}/threads`, { params }),
+  getThread: (threadUuid: string) =>
+    api.get(`/discussion/threads/${threadUuid}`),
+  createThread: (courseUuid: string, data: { title: string; content: string }) =>
+    api.post(`/discussion/courses/${courseUuid}/threads`, data),
+  deleteThread: (threadUuid: string) =>
+    api.delete(`/discussion/threads/${threadUuid}`),
+  pinThread: (threadUuid: string) =>
+    api.patch(`/discussion/threads/${threadUuid}/pin`),
+  createReply: (threadUuid: string, data: { content: string }) =>
+    api.post(`/discussion/threads/${threadUuid}/replies`, data),
+  deleteReply: (replyUuid: string) =>
+    api.delete(`/discussion/replies/${replyUuid}`),
 };
 
 // ─── Chatbot ──────────────────────────────────────────────────────────────

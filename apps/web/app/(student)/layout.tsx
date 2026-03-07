@@ -32,9 +32,9 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-screen overflow-hidden bg-background">
       {/* ── Desktop Sidebar ─────────────────────────────────────── */}
-      <aside className="hidden lg:flex lg:flex-col w-60 border-r shrink-0">
+      <aside className="hidden lg:flex lg:flex-col w-60 border-r shrink-0 h-full overflow-y-auto">
         <AppSidebar navItems={studentNavItems} role="STUDENT" />
       </aside>
 
