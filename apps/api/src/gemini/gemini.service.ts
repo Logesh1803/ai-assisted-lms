@@ -15,8 +15,102 @@ export class GeminiService {
   }
 
   private parseJson<T>(text: string): T {
-    const cleaned = text.replace(/```json|```/g, '').trim();
-    return JSON.parse(cleaned);
+    // Strip markdown code fences
+    const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    // Escape raw control characters that appear inside JSON string values.
+    // Structural whitespace (between tokens) is left untouched.
+    const sanitized = this.escapeControlCharsInStrings(cleaned);
+    return JSON.parse(sanitized);
+  }
+
+  /**
+   * Walks the raw JSON text character-by-character and fixes two classes of
+   * problems that Gemini introduces in long/rich content:
+   *
+   * 1. Raw control characters (U+0000–U+001F) inside string values are
+   *    escaped to \n, \r, \t, or \uXXXX as required by the JSON spec.
+   *
+   * 2. Invalid or ambiguous backslash sequences inside string values.
+   *    Gemini emits LaTeX like \frac, \sqrt, \alpha, \pm, \[ etc.
+   *    Only  \" \\  \/ \n \r \t \uXXXX  are safe to pass through unchanged.
+   *    \b and \f are technically valid JSON escapes but Gemini almost never
+   *    means backspace/form-feed — it means \beta, \frac etc., so they are
+   *    also treated as bare backslashes and doubled.
+   *    Any other \X has its backslash doubled so JSON.parse sees a literal \.
+   *
+   * Bug-free invariant: when we advance past a backslash we only advance i
+   * by 1 (past the \ itself); the following character is processed on the
+   * next iteration and receives its own control-char treatment if needed.
+   */
+  private escapeControlCharsInStrings(text: string): string {
+    // Only these characters after \ are unambiguous safe JSON escapes.
+    // \b and \f are intentionally excluded — Gemini uses them for LaTeX.
+    const SAFE_ESCAPES = new Set(['"', '\\', '/', 'n', 'r', 't', 'u']);
+
+    let result = '';
+    let inString = false;
+    let i = 0;
+
+    while (i < text.length) {
+      const ch = text[i];
+
+      // ── outside a string ─────────────────────────────────────────────────
+      if (!inString) {
+        if (ch === '"') inString = true;
+        result += ch;
+        i++;
+        continue;
+      }
+
+      // ── inside a string ──────────────────────────────────────────────────
+
+      if (ch === '\\') {
+        const next = i + 1 < text.length ? text[i + 1] : '';
+
+        if (SAFE_ESCAPES.has(next)) {
+          // Safe escape — keep the \ and consume next char together
+          result += '\\' + next;
+          i += 2;
+          if (next === 'u') {
+            // \uXXXX — consume the four hex digits
+            result += text.slice(i, i + 4);
+            i += 4;
+          }
+        } else {
+          // Bare or ambiguous backslash (LaTeX, etc.) — escape only the \
+          // The character after it is left for the next iteration so it gets
+          // its own control-char check if necessary.
+          result += '\\\\';
+          i += 1;
+        }
+        continue;
+      }
+
+      if (ch === '"') {
+        inString = false;
+        result += ch;
+        i++;
+        continue;
+      }
+
+      // Raw control character inside a string
+      const code = ch.charCodeAt(0);
+      if (code < 0x20) {
+        switch (ch) {
+          case '\n': result += '\\n'; break;
+          case '\r': result += '\\r'; break;
+          case '\t': result += '\\t'; break;
+          default:   result += '\\u' + code.toString(16).padStart(4, '0');
+        }
+        i++;
+        continue;
+      }
+
+      result += ch;
+      i++;
+    }
+
+    return result;
   }
 
   private async generate(prompt: string): Promise<string> {
@@ -41,17 +135,25 @@ export class GeminiService {
 
   async generateCourseSummary(
     courseTitle: string,
-    lessons: { title: string; description: string; content: string }[],
+    lessons: { title: string; description: string; content: string; videoSummary?: string; videoKeyPoints?: string[] }[],
   ): Promise<{ summary: string; key_points: string[] }> {
     const lessonContent = lessons
-      .map(
-        (l, i) =>
-          `Lesson ${i + 1}: ${l.title}\n${l.description ?? ''}\n${l.content ?? ''}`,
-      )
+      .map((l, i) => {
+        let block = `Lesson ${i + 1}: ${l.title}\n${l.description ?? ''}\n${l.content ?? ''}`;
+        if (l.videoSummary) {
+          block += `\n[Video Content]: ${l.videoSummary}`;
+        }
+        if (l.videoKeyPoints?.length) {
+          block += `\n[Video Key Points]: ${l.videoKeyPoints.join(' | ')}`;
+        }
+        return block;
+      })
       .join('\n\n');
 
+    const hasVideo = lessons.some((l) => l.videoSummary);
+
     const prompt = `
-You are an expert educator. Given the course "${courseTitle}" with the following lessons, generate:
+You are an expert educator. Given the course "${courseTitle}" with the following lessons${hasVideo ? ' (some include analyzed video content)' : ''}, generate:
 1. A concise course summary (2-3 paragraphs)
 2. A list of 5-8 key points students will learn
 
@@ -65,7 +167,7 @@ Respond in this exact JSON format:
 }`;
 
     const text = await this.generate(prompt);
-    this.logger.log(`Generated summary for course: ${courseTitle}`);
+    this.logger.log(`Generated summary for course: ${courseTitle}${hasVideo ? ' (with video analysis)' : ''}`);
     return this.parseJson(text);
   }
 
@@ -301,42 +403,107 @@ Respond ONLY in this exact JSON format:
     );
   }
 
-  // ─── Generate Course from Prompt ─────────────────────────────────────────
+  // ─── Generate Course from Prompt (two-step: structure JSON + plain content) ──
 
-  async generateCourseFromPrompt(prompt: string): Promise<{
+  async generateCourseFromPrompt(prompt: string, syllabus?: string[]): Promise<{
     title: string;
     description: string;
     tags: string[];
     lessons: { title: string; description: string; content: string; order: number }[];
   }> {
-    const fullPrompt = `You are an expert course creator for an online learning platform. Based on the following teacher's description, generate a complete course structure.
+    // Step 1 — small, safe JSON: course outline only (no long content strings)
+    const structure = await this.generateCourseStructure(prompt, syllabus);
+    this.logger.log(`Course structure ready: "${structure.title}" (${structure.lessons.length} lessons)`);
+
+    // Step 2 — rich markdown content per lesson as plain text (no JSON at all)
+    // Run in parallel batches of 3 to balance speed vs rate-limit safety
+    const CONCURRENCY = 3;
+    const lessonsWithContent: { title: string; description: string; content: string; order: number }[] =
+      new Array(structure.lessons.length);
+
+    for (let i = 0; i < structure.lessons.length; i += CONCURRENCY) {
+      const batch = structure.lessons.slice(i, i + CONCURRENCY);
+      const batchResults = await Promise.all(
+        batch.map((lesson) =>
+          this.generateLessonContent(lesson.title, lesson.description, structure.title).then(
+            (content) => {
+              this.logger.log(`  ✓ Lesson ${lesson.order}: "${lesson.title}"`);
+              return { ...lesson, content };
+            },
+          ),
+        ),
+      );
+      batchResults.forEach((r, j) => { lessonsWithContent[i + j] = r; });
+    }
+
+    return { ...structure, lessons: lessonsWithContent };
+  }
+
+  /** Step 1 — only titles, descriptions, tags. Small JSON → safe to parse. */
+  private async generateCourseStructure(
+    prompt: string,
+    syllabus?: string[],
+  ): Promise<{
+    title: string;
+    description: string;
+    tags: string[];
+    lessons: { title: string; description: string; order: number }[];
+  }> {
+    const syllabusBlock =
+      syllabus && syllabus.length > 0
+        ? `\nSyllabus topics to cover (cover ALL of them):\n${syllabus.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
+        : '\nGenerate a comprehensive general curriculum for this subject.';
+
+    const structurePrompt = `You are a course designer. Based on the teacher's description below, plan a course outline.
 
 Teacher's description: "${prompt}"
+${syllabusBlock}
 
-Create a well-structured course with:
-1. A clear, engaging course title
-2. A compelling description (2-3 sentences)
-3. 3-5 relevant tags
-4. 5-8 lessons, each with a title, short description, and detailed content (minimum 3 paragraphs per lesson)
+Rules:
+- Plan 6-10 lessons that progress logically from fundamentals to advanced topics.
+- Keep lesson descriptions to ONE sentence only — no content yet.
+- Titles must be specific and descriptive.
 
-Respond ONLY with this exact JSON format:
+Respond with ONLY this JSON (no markdown fences, no extra text):
 {
-  "title": "...",
-  "description": "...",
-  "tags": ["...", "..."],
+  "title": "Course title",
+  "description": "2-3 sentence course overview.",
+  "tags": ["tag1", "tag2", "tag3"],
   "lessons": [
-    {
-      "order": 1,
-      "title": "...",
-      "description": "One sentence describing the lesson",
-      "content": "Detailed lesson content with multiple paragraphs covering the topic thoroughly..."
-    }
+    { "order": 1, "title": "Lesson title", "description": "One sentence." },
+    { "order": 2, "title": "Lesson title", "description": "One sentence." }
   ]
 }`;
 
-    const text = await this.generate(fullPrompt);
-    this.logger.log('Generated course structure from prompt');
+    const text = await this.generate(structurePrompt);
     return this.parseJson(text);
+  }
+
+  /** Step 2 — rich markdown returned as plain text. No JSON wrapping = no escaping issues. */
+  private async generateLessonContent(
+    lessonTitle: string,
+    lessonDescription: string,
+    courseTitle: string,
+  ): Promise<string> {
+    const contentPrompt = `You are an expert textbook author writing a lesson for the course "${courseTitle}".
+
+Lesson title: "${lessonTitle}"
+Lesson overview: "${lessonDescription}"
+
+Write a comprehensive, textbook-quality lesson in Markdown. Follow every rule below:
+
+1. MINIMUM 800 words of explanatory text.
+2. Use clear headings: ## Introduction, ## Core Concepts, ## [topic subsections], ## Worked Examples, ## Real-World Applications, ## Practice Problems, ## Key Takeaways, ## Further Reading.
+3. Mathematics: inline formulas with $...$ and block formulas with $$...$$. Example: $$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$
+4. At least one ASCII diagram OR Markdown table per lesson.
+5. 3–5 fully worked examples with numbered steps and a clear final answer.
+6. Real-World Applications: at least 3 concrete industry/daily-life examples.
+7. Practice Problems: 3–5 problems followed by their answers.
+8. Key Takeaways: 5–8 bullet points.
+
+Return ONLY the Markdown content — no JSON, no code fence wrapping the whole thing.`;
+
+    return (await this.generate(contentPrompt)).trim();
   }
 
   // ─── Student Notes from Summary ───────────────────────────────────────────

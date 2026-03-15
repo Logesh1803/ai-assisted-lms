@@ -27,8 +27,8 @@ export default function MyLearningPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {[1, 2, 3, 4].map((i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
             <Card key={i}>
               <CardHeader>
                 <Skeleton className="h-5 w-3/4" />
@@ -55,7 +55,7 @@ export default function MyLearningPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {enrollments.map((enrollment: any) => {
             const progress = enrollment.progressPercent || enrollment.progress || 0;
             const isCompleted = enrollment.status === "COMPLETED";
@@ -65,29 +65,47 @@ export default function MyLearningPage() {
             const firstLessonId = lessons[0]?.id;
 
             return (
-              <Card key={enrollment.uuid} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-base line-clamp-2">
-                      {course.title || "Untitled Course"}
-                    </CardTitle>
+              <Card key={enrollment.uuid} className="hover:shadow-lg transition-all duration-200 overflow-hidden group">
+                {course.thumbnail ? (
+                  <div className="relative h-44 overflow-hidden">
+                    <img
+                      src={course.thumbnail}
+                      alt={course.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <h3 className="font-semibold text-white line-clamp-2 text-base leading-snug">
+                        {course.title || "Untitled Course"}
+                      </h3>
+                    </div>
                     <Badge
                       variant={isCompleted ? "default" : "secondary"}
-                      className="shrink-0"
+                      className="absolute top-3 right-3"
                     >
-                      {isCompleted ? (
-                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                      ) : null}
-                      {enrollment.status || "IN_PROGRESS"}
+                      {isCompleted && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                      {isCompleted ? "Completed" : "In Progress"}
                     </Badge>
                   </div>
+                ) : (
+                  <div className="relative h-44 bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-700 flex items-end p-4">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-white line-clamp-2 text-base leading-snug">
+                        {course.title || "Untitled Course"}
+                      </h3>
+                    </div>
+                    <Badge variant={isCompleted ? "default" : "secondary"} className="shrink-0 ml-2">
+                      {isCompleted && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                      {isCompleted ? "Completed" : "In Progress"}
+                    </Badge>
+                  </div>
+                )}
+                <CardContent className="pt-4 space-y-4">
                   {enrollment.createdAt && (
                     <p className="text-xs text-muted-foreground">
                       Enrolled {formatDate(enrollment.createdAt)}
                     </p>
                   )}
-                </CardHeader>
-                <CardContent className="space-y-4">
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Progress</span>

@@ -43,15 +43,15 @@ export default function TeacherDashboard() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { icon: BookOpen,      label: "Total Courses",  value: totalCourses      },
-          { icon: GraduationCap, label: "Published",      value: publishedCourses  },
-          { icon: Users,         label: "Total Students", value: totalStudents     },
-          { icon: BarChart2,     label: "Quiz Attempts",  value: totalQuizAttempts },
-        ].map(({ icon: Icon, label, value }) => (
+          { icon: BookOpen,      label: "Total Courses",  value: totalCourses,      color: "from-violet-500 to-purple-600"  },
+          { icon: GraduationCap, label: "Published",      value: publishedCourses,  color: "from-emerald-500 to-teal-600"  },
+          { icon: Users,         label: "Total Students", value: totalStudents,     color: "from-blue-500 to-indigo-600"   },
+          { icon: BarChart2,     label: "Quiz Attempts",  value: totalQuizAttempts, color: "from-amber-500 to-orange-600"  },
+        ].map(({ icon: Icon, label, value, color }) => (
           <Card key={label}>
             <CardContent className="flex items-center gap-3 pt-5">
-              <div className="rounded-full bg-muted p-2.5">
-                <Icon className="h-4 w-4 text-muted-foreground" />
+              <div className={`rounded-xl bg-gradient-to-br ${color} p-2.5 shadow-md`}>
+                <Icon className="h-4 w-4 text-white" />
               </div>
               <div>
                 {isLoading ? (
@@ -103,9 +103,18 @@ export default function TeacherDashboard() {
         ) : (
           <div className="space-y-2">
             {courses.slice(0, 5).map((course: any) => (
-              <Card key={course.uuid}>
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center justify-between gap-4">
+              <Card key={course.uuid} className="hover:shadow-md transition-shadow">
+                <CardContent className="pt-0 pb-0 p-0">
+                  <div className="flex items-center gap-4 p-3">
+                    {course.thumbnail ? (
+                      <div className="h-14 w-20 rounded-lg overflow-hidden shrink-0">
+                        <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="h-14 w-20 rounded-lg shrink-0 bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center">
+                        <BookOpen className="h-5 w-5 text-white/70" />
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-medium truncate text-sm">{course.title}</h3>

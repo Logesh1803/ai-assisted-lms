@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
-import { coursesApi, lessonsApi, summaryApi, quizApi, discussionApi } from "@/lib/api";
+import { coursesApi, lessonsApi, summaryApi, quizApi, discussionApi, courseNotesApi } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getFriendlyError } from "@/lib/errors";
+import { useQuotaCountdown } from "@/hooks/use-quota-countdown";
 import {
   ArrowLeft,
   Edit,
@@ -57,6 +58,10 @@ import {
   MessageSquare,
   Pin,
   Send,
+  Upload,
+  Paperclip,
+  Download,
+  Clock,
 } from "lucide-react";
 
 const editSchema = z.object({
@@ -94,6 +99,7 @@ export default function TeacherCourseDetailPage({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteLessonId, setDeleteLessonId] = useState<number | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
+  const { quotaSeconds: summaryQuotaSeconds, handleQuotaError: handleSummaryQuotaError } = useQuotaCountdown();
   const [expandedAttempt, setExpandedAttempt] = useState<string | null>(null);
   const [activeThread, setActiveThread] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
@@ -287,7 +293,7 @@ export default function TeacherCourseDetailPage({
       toast.success("AI summary generated!");
       queryClient.invalidateQueries({ queryKey: ["course-summary", uuid] });
     } catch (err: any) {
-      toast.error(getFriendlyError(err));
+      if (!handleSummaryQuotaError(err, handleGenerateSummary)) toast.error(getFriendlyError(err));
     } finally {
       setGeneratingSummary(false);
     }
@@ -406,6 +412,10 @@ export default function TeacherCourseDetailPage({
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="notes" className="flex items-center gap-1">
+            <Paperclip className="h-3.5 w-3.5" />
+            Notes & Files
+          </TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -507,17 +517,33 @@ export default function TeacherCourseDetailPage({
               variant="outline"
               size="sm"
               onClick={handleGenerateSummary}
-              disabled={generatingSummary}
+              disabled={generatingSummary || summaryQuotaSeconds > 0}
               className="gap-2"
             >
               {generatingSummary ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : summaryQuotaSeconds > 0 ? (
+                <Clock className="h-3.5 w-3.5" />
               ) : (
                 <Sparkles className="h-3.5 w-3.5" />
               )}
-              {(summaryData as any) ? "Regenerate" : "Generate Summary"}
+              {generatingSummary
+                ? "Generating..."
+                : summaryQuotaSeconds > 0
+                ? `Retry in ${summaryQuotaSeconds}s`
+                : (summaryData as any) ? "Regenerate" : "Generate Summary"}
             </Button>
           </div>
+
+          {summaryQuotaSeconds > 0 && (
+            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+              <Clock className="h-4 w-4 shrink-0 animate-pulse" />
+              <span>
+                AI quota reached — retrying automatically in{" "}
+                <span className="font-semibold tabular-nums">{summaryQuotaSeconds}s</span>
+              </span>
+            </div>
+          )}
 
           <Card>
             <CardContent className="pt-6">
@@ -965,6 +991,11 @@ export default function TeacherCourseDetailPage({
           )}
         </TabsContent>
 
+        {/* Notes & Files Tab */}
+        <TabsContent value="notes" className="mt-4">
+          <CourseNotesTab courseUuid={uuid} />
+        </TabsContent>
+
         {/* Settings Tab */}
         <TabsContent value="settings" className="mt-4">
           <Card>
@@ -1100,6 +1131,186 @@ export default function TeacherCourseDetailPage({
               {deleteLessonMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               Delete Lesson
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─── Course Notes Tab ─────────────────────────────────────────────────────────
+
+function CourseNotesTab({ courseUuid }: { courseUuid: string }) {
+  const queryClient = useQueryClient();
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: notes = [], isLoading } = useQuery({
+    queryKey: ["course-notes", courseUuid],
+    queryFn: () => courseNotesApi.getByCourse(courseUuid) as unknown as Promise<any[]>,
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: () => courseNotesApi.upload(courseUuid, { title, description }, file ?? undefined),
+    onSuccess: () => {
+      toast.success("Note uploaded and students notified!");
+      queryClient.invalidateQueries({ queryKey: ["course-notes", courseUuid] });
+      setUploadOpen(false);
+      setTitle(""); setDescription(""); setFile(null);
+    },
+    onError: (err: any) => toast.error(getFriendlyError(err)),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (noteUuid: string) => courseNotesApi.remove(noteUuid),
+    onSuccess: () => {
+      toast.success("Note deleted.");
+      queryClient.invalidateQueries({ queryKey: ["course-notes", courseUuid] });
+    },
+    onError: (err: any) => toast.error(getFriendlyError(err)),
+  });
+
+  const fileIcon = (type?: string) => {
+    if (!type) return <FileText className="h-4 w-4" />;
+    if (type.includes("pdf")) return <FileText className="h-4 w-4 text-red-500" />;
+    if (type.includes("image")) return <FileText className="h-4 w-4 text-blue-500" />;
+    return <Paperclip className="h-4 w-4 text-muted-foreground" />;
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold">Notes & Resources</h3>
+          <p className="text-sm text-muted-foreground">Upload files and notes — enrolled students are notified automatically.</p>
+        </div>
+        <Button onClick={() => setUploadOpen(true)} size="sm" className="gap-1.5">
+          <Upload className="h-3.5 w-3.5" />
+          Upload Resource
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">{[1,2].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>
+      ) : (notes as any[]).length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-14 text-center">
+            <Paperclip className="h-10 w-10 text-muted-foreground mb-3 opacity-40" />
+            <p className="font-medium">No resources yet</p>
+            <p className="text-sm text-muted-foreground mt-1">Upload notes, PDFs, or files for your students.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {(notes as any[]).map((note: any) => (
+            <Card key={note.uuid}>
+              <CardContent className="flex items-center gap-3 py-3 px-4">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+                  {fileIcon(note.fileType)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{note.title}</p>
+                  {note.description && (
+                    <p className="text-xs text-muted-foreground truncate">{note.description}</p>
+                  )}
+                  {note.fileName && (
+                    <p className="text-xs text-muted-foreground">{note.fileName}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {note.fileUrl && (
+                    <a href={note.fileUrl} target="_blank" rel="noopener noreferrer">
+                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
+                    </a>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive hover:text-destructive"
+                    onClick={() => deleteMutation.mutate(note.uuid)}
+                    disabled={deleteMutation.isPending}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Upload Dialog */}
+      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upload Resource</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Title *</label>
+              <Input
+                placeholder="e.g., Chapter 3 Notes, Formula Sheet"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Description (optional)</label>
+              <Textarea
+                placeholder="Brief description of this resource..."
+                rows={2}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">File (optional)</label>
+              <div
+                className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {file ? (
+                  <div className="flex items-center justify-center gap-2 text-sm">
+                    <Paperclip className="h-4 w-4 text-primary" />
+                    <span className="font-medium truncate max-w-[200px]">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    <Upload className="h-5 w-5 mx-auto mb-1 opacity-50" />
+                    Click to select file (PDF, Word, images, up to 50MB)
+                  </div>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.webp,.txt"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" onClick={() => setUploadOpen(false)}>Cancel</Button>
+              <Button
+                onClick={() => uploadMutation.mutate()}
+                disabled={!title.trim() || uploadMutation.isPending}
+              >
+                {uploadMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                Upload & Notify Students
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -7,9 +7,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, X, Sparkles, PenLine } from "lucide-react";
+import { Loader2, ArrowLeft, X, Sparkles, PenLine, Plus, GripVertical, Clock } from "lucide-react";
 import { coursesApi } from "@/lib/api";
 import { getFriendlyError } from "@/lib/errors";
+import { useQuotaCountdown } from "@/hooks/use-quota-countdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,6 +47,9 @@ export default function CreateCoursePage() {
   const [tagInput, setTagInput] = useState("");
   const [mode, setMode] = useState<"manual" | "ai">("manual");
   const [aiPrompt, setAiPrompt] = useState("");
+  const [syllabusTopics, setSyllabusTopics] = useState<string[]>([]);
+  const [syllabusInput, setSyllabusInput] = useState("");
+  const { quotaSeconds, handleQuotaError } = useQuotaCountdown();
 
   const form = useForm<CreateFormValues>({
     resolver: zodResolver(createSchema),
@@ -95,6 +99,18 @@ export default function CreateCoursePage() {
     }
   };
 
+  const addSyllabusTopic = () => {
+    const trimmed = syllabusInput.trim();
+    if (trimmed && !syllabusTopics.includes(trimmed)) {
+      setSyllabusTopics((prev) => [...prev, trimmed]);
+    }
+    setSyllabusInput("");
+  };
+
+  const removeSyllabusTopic = (topic: string) => {
+    setSyllabusTopics((prev) => prev.filter((t) => t !== topic));
+  };
+
   const onSubmitAI = async () => {
     if (!aiPrompt.trim()) {
       toast.error("Please describe the course you want to create.");
@@ -102,12 +118,15 @@ export default function CreateCoursePage() {
     }
     setIsLoading(true);
     try {
-      const result = await coursesApi.generateFromPrompt(aiPrompt.trim());
+      const result = await coursesApi.generateFromPrompt(
+        aiPrompt.trim(),
+        syllabusTopics.length > 0 ? syllabusTopics : undefined,
+      );
       const courseData = result as any;
       toast.success(`Course "${courseData.title}" created with ${courseData.lessons?.length ?? 0} lessons!`);
       router.push(`/teacher/courses/${courseData.uuid || courseData.id}`);
     } catch (err: any) {
-      toast.error(getFriendlyError(err));
+      if (!handleQuotaError(err, onSubmitAI)) toast.error(getFriendlyError(err));
     } finally {
       setIsLoading(false);
     }
@@ -163,26 +182,79 @@ export default function CreateCoursePage() {
               <label className="text-sm font-medium">Describe your course</label>
               <Textarea
                 placeholder={`e.g., "A beginner-friendly Python course covering variables, loops, functions, and basic data structures. Aimed at students with no programming experience."`}
-                rows={5}
+                rows={4}
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
                 disabled={isLoading}
                 className="resize-none"
               />
               <p className="text-xs text-muted-foreground">
-                Be descriptive — mention the subject, target audience, and topics to cover. AI will generate the course title, description, tags, and all lesson content.
+                Be descriptive — mention the subject, target audience, and level. AI will generate textbook-quality content with diagrams, formulas, and examples.
               </p>
             </div>
+
+            {/* Syllabus Topics */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Syllabus Topics <span className="text-muted-foreground font-normal">(optional)</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="flex-1 h-9 rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-ring"
+                  placeholder="e.g., Quadratic Equations, Integration..."
+                  value={syllabusInput}
+                  onChange={(e) => setSyllabusInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSyllabusTopic(); } }}
+                  disabled={isLoading}
+                />
+                <Button type="button" variant="outline" size="sm" onClick={addSyllabusTopic} disabled={isLoading}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              {syllabusTopics.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 p-2 border rounded-md bg-muted/30">
+                  {syllabusTopics.map((topic, i) => (
+                    <span key={i} className="flex items-center gap-1 bg-background border rounded-md px-2 py-0.5 text-xs">
+                      <GripVertical className="h-3 w-3 text-muted-foreground" />
+                      {topic}
+                      <button type="button" onClick={() => removeSyllabusTopic(topic)} className="hover:text-destructive ml-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Add specific topics/chapters — AI will cover each one with diagrams, formulas, and examples. Leave empty for a general curriculum.
+              </p>
+            </div>
+
+            {quotaSeconds > 0 && (
+              <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                <Clock className="h-4 w-4 shrink-0 animate-pulse" />
+                <span>
+                  AI quota reached — retrying automatically in{" "}
+                  <span className="font-semibold tabular-nums">{quotaSeconds}s</span>
+                </span>
+              </div>
+            )}
+
             <div className="flex gap-3">
               <Button
                 onClick={onSubmitAI}
-                disabled={isLoading || !aiPrompt.trim()}
+                disabled={isLoading || !aiPrompt.trim() || quotaSeconds > 0}
                 className="flex-1 gap-2"
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Generating course...
+                  </>
+                ) : quotaSeconds > 0 ? (
+                  <>
+                    <Clock className="h-4 w-4" />
+                    Retry in {quotaSeconds}s
                   </>
                 ) : (
                   <>

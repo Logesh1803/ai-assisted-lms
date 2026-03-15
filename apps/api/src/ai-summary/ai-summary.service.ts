@@ -1,14 +1,45 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as path from 'path';
 import { SystemsDatabaseService } from '@thinkbloom/data-sources';
 import { GeminiService } from '../gemini/gemini.service';
 import { getTimestamps } from 'utils/src/date-formatter.service';
 
 @Injectable()
 export class AiSummaryService {
+  private readonly logger = new Logger(AiSummaryService.name);
+  private readonly baseUrl: string;
+
   constructor(
     private prisma: SystemsDatabaseService,
     private geminiService: GeminiService,
-  ) {}
+    private configService: ConfigService,
+  ) {
+    this.baseUrl = this.configService.get<string>('APP_BASE_URL') || 'http://localhost:8080';
+  }
+
+  /** Convert a stored video URL back to its local filesystem path. */
+  private resolveVideoPath(videoUrl: string): string {
+    // videoUrl looks like: "http://localhost:8080/uploads/videos/xyz.mp4"
+    // Strip origin, then map "/uploads/..." → process.cwd()/uploads/...
+    const pathname = videoUrl.replace(this.baseUrl, ''); // "/uploads/videos/xyz.mp4"
+    const relative = pathname.startsWith('/uploads/')
+      ? pathname.slice('/uploads/'.length)   // "videos/xyz.mp4"
+      : pathname.replace(/^\//, '');
+    return path.join(process.cwd(), 'uploads', relative);
+  }
+
+  private getMimeType(videoUrl: string): string {
+    const ext = path.extname(videoUrl).toLowerCase();
+    const map: Record<string, string> = {
+      '.mp4': 'video/mp4',
+      '.mov': 'video/quicktime',
+      '.avi': 'video/x-msvideo',
+      '.mkv': 'video/x-matroska',
+      '.webm': 'video/webm',
+    };
+    return map[ext] ?? 'video/mp4';
+  }
 
   // ============== GENERATE / REGENERATE SUMMARY ==============
   async generate(courseUuid: string, userId: number) {
@@ -18,24 +49,45 @@ export class AiSummaryService {
         lessons: {
           where: { deleted_at: null },
           orderBy: { order: 'asc' },
-          select: { title: true, description: true, content: true },
+          select: { title: true, description: true, content: true, video_url: true },
         },
       },
     });
-
-    const normalizedLessons = course?.lessons.map(lesson => ({
-      title: lesson.title,
-      description: lesson.description ?? '',
-      content: lesson.content ?? '',
-    })) ?? [];
 
     if (!course) throw new NotFoundException('Course not found');
     if (course.lessons.length === 0)
       throw new BadRequestException('Course has no lessons to summarize');
 
+    // Analyze videos in parallel (fire-and-forget errors — continue with text if video fails)
+    const enrichedLessons = await Promise.all(
+      course.lessons.map(async (lesson) => {
+        const base = {
+          title: lesson.title,
+          description: lesson.description ?? '',
+          content: lesson.content ?? '',
+          videoSummary: undefined as string | undefined,
+          videoKeyPoints: undefined as string[] | undefined,
+        };
+        if (lesson.video_url) {
+          try {
+            const filePath = this.resolveVideoPath(lesson.video_url);
+            const mimeType = this.getMimeType(lesson.video_url);
+            this.logger.log(`Analyzing video for lesson: "${lesson.title}"`);
+            const analysis = await this.geminiService.analyzeVideoFile(filePath, mimeType);
+            base.videoSummary = analysis.summary;
+            base.videoKeyPoints = analysis.key_points;
+            this.logger.log(`  ✓ Video analyzed for: "${lesson.title}"`);
+          } catch (err: any) {
+            this.logger.warn(`Video analysis skipped for "${lesson.title}": ${err.message}`);
+          }
+        }
+        return base;
+      }),
+    );
+
     const { summary, key_points } = await this.geminiService.generateCourseSummary(
       course.title,
-      normalizedLessons,
+      enrichedLessons,
     );
 
     return this.prisma.aISummary.upsert({

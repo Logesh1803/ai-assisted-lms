@@ -39,6 +39,14 @@ export class NotificationConsumerService extends BullMQWorkerHost {
         await this.notificationService.sentOtp(job.data.email, job.data.otp);
         break;
 
+      case NOTIFICATION_JOBS.COURSE_NOTE_UPLOADED:
+        await this.notificationService.sendCourseNoteUploaded(job.data);
+        break;
+
+      case NOTIFICATION_JOBS.QUIZ_ATTEMPTED_TEACHER:
+        await this.notificationService.sendQuizAttemptedTeacher(job.data);
+        break;
+
       default:
         this.logger.warn(`Unknown notification job: ${job.name}`);
         throw new Error(`Unknown job topic: ${job.name}`);

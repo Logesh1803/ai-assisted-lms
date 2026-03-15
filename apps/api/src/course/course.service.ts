@@ -199,8 +199,8 @@ export class CourseService {
   }
 
   // ─── AI: Generate Course from Prompt ─────────────────────────────────────
-  async generateFromPrompt(prompt: string, userId: number) {
-    const generated = await this.geminiService.generateCourseFromPrompt(prompt);
+  async generateFromPrompt(prompt: string, userId: number, syllabus?: string[]) {
+    const generated = await this.geminiService.generateCourseFromPrompt(prompt, syllabus);
 
     const now = BigInt(Date.now());
 
@@ -209,11 +209,18 @@ export class CourseService {
     });
     const title = existing ? `${generated.title} (2)` : generated.title;
 
+    // Generate AI thumbnail via Pollinations.ai (free, no API key required)
+    const thumbnailPrompt = encodeURIComponent(
+      `${title} online course thumbnail, educational, modern flat design, vibrant colors, digital learning`,
+    );
+    const thumbnail = `https://image.pollinations.ai/prompt/${thumbnailPrompt}?width=800&height=450&nologo=true`;
+
     const course = await this.db.course.create({
       data: {
         teacher_id: userId,
         title,
         description: generated.description,
+        thumbnail,
         tags: generated.tags ?? [],
         status: CourseStatus.DRAFT,
         created_by: userId,

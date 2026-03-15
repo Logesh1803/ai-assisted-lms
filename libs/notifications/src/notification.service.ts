@@ -6,6 +6,8 @@ import { forgotPasswordEmailTemplate } from "./templates/forgot-password";
 import { enrollmentConfirmationEmailTemplate } from "./templates/enrollment-confirmation";
 import { quizCompletedEmailTemplate } from "./templates/quiz-completed";
 import { videoProcessedEmailTemplate } from "./templates/video-processed";
+import { courseNoteUploadedEmailTemplate } from "./templates/course-note-uploaded";
+import { quizAttemptedTeacherEmailTemplate } from "./templates/quiz-attempted-teacher";
 
 @Injectable()
 export class NotificationService {
@@ -114,6 +116,59 @@ export class NotificationService {
       lessonLink,
     });
 
+    await this.emailChannel.send({
+      to: data.teacherEmail,
+      subject: content.subject,
+      html: content.html,
+      from: process.env.EMAIL_FROM,
+      replyTo: "support@thinkbloom.ai",
+    });
+  }
+
+  // ─── Course Note Uploaded ─────────────────────────────────────────────────
+
+  async sendCourseNoteUploaded(data: {
+    studentName: string;
+    studentEmail: string;
+    courseTitle: string;
+    courseUuid: string;
+    noteTitle: string;
+  }) {
+    const courseLink = `${process.env.FRONTEND_URL}/student/courses/${data.courseUuid}`;
+    const content = courseNoteUploadedEmailTemplate({
+      studentName: data.studentName,
+      courseTitle: data.courseTitle,
+      noteTitle: data.noteTitle,
+      courseLink,
+    });
+    await this.emailChannel.send({
+      to: data.studentEmail,
+      subject: content.subject,
+      html: content.html,
+      from: process.env.EMAIL_FROM,
+      replyTo: "support@thinkbloom.ai",
+    });
+  }
+
+  // ─── Quiz Attempted (teacher notification) ────────────────────────────────
+
+  async sendQuizAttemptedTeacher(data: {
+    teacherName: string;
+    teacherEmail: string;
+    studentName: string;
+    courseTitle: string;
+    courseUuid: string;
+    attemptUuid: string;
+    score: number;
+  }) {
+    const resultsLink = `${process.env.FRONTEND_URL}/teacher/courses/${data.courseUuid}?tab=quiz`;
+    const content = quizAttemptedTeacherEmailTemplate({
+      teacherName: data.teacherName,
+      studentName: data.studentName,
+      courseTitle: data.courseTitle,
+      score: data.score,
+      resultsLink,
+    });
     await this.emailChannel.send({
       to: data.teacherEmail,
       subject: content.subject,

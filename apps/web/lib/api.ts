@@ -1,16 +1,16 @@
 import axios from "axios";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://tzw563k6-8080.inc1.devtunnels.ms/api/v1";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 
 export const api = axios.create({
   baseURL: API_BASE,
   headers: { "Content-Type": "application/json" },
 });
 
-// Attach JWT token to every request
+// Attach JWT token to every request — read from sessionStorage (tab-isolated)
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("access_token");
+    const token = sessionStorage.getItem("access_token");
     if (token) config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -23,8 +23,8 @@ api.interceptors.response.use(
     const message =
       err.response?.data?.message || err.message || "Something went wrong";
     if (err.response?.status === 401 && typeof window !== "undefined") {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("auth_user");
+      sessionStorage.removeItem("access_token");
+      sessionStorage.removeItem("auth-storage");
       window.location.href = "/auth/login";
     }
     return Promise.reject(new Error(Array.isArray(message) ? message[0] : message));
@@ -49,8 +49,8 @@ export const coursesApi = {
   getMine: (params?: any) => api.get("/courses/mine", { params }),
   getOne: (uuid: string) => api.get(`/courses/${uuid}`),
   create: (data: any) => api.post("/courses", data),
-  generateFromPrompt: (prompt: string) =>
-    api.post("/courses/generate-from-prompt", { prompt }),
+  generateFromPrompt: (prompt: string, syllabus?: string[]) =>
+    api.post("/courses/generate-from-prompt", { prompt, syllabus }),
   update: (uuid: string, data: any) => api.put(`/courses/${uuid}`, data),
   changeStatus: (uuid: string, status: string) =>
     api.patch(`/courses/${uuid}/status`, { status }),
@@ -152,6 +152,28 @@ export const discussionApi = {
     api.post(`/discussion/threads/${threadUuid}/replies`, data),
   deleteReply: (replyUuid: string) =>
     api.delete(`/discussion/replies/${replyUuid}`),
+};
+
+// ─── Course Notes ─────────────────────────────────────────────────────────
+export const courseNotesApi = {
+  upload: (courseUuid: string, data: { title: string; description?: string }, file?: File) => {
+    const form = new FormData();
+    form.append("title", data.title);
+    if (data.description) form.append("description", data.description);
+    if (file) form.append("file", file);
+    return api.post(`/course-notes/${courseUuid}/upload`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+  getByCourse: (courseUuid: string) => api.get(`/course-notes/${courseUuid}`),
+  remove: (noteUuid: string) => api.delete(`/course-notes/${noteUuid}`),
+};
+
+// ─── Notifications ────────────────────────────────────────────────────────
+export const notificationsApi = {
+  getAll: () => api.get("/notifications"),
+  markRead: (uuid: string) => api.patch(`/notifications/${uuid}/read`),
+  markAllRead: () => api.patch("/notifications/read-all"),
 };
 
 // ─── Chatbot ──────────────────────────────────────────────────────────────

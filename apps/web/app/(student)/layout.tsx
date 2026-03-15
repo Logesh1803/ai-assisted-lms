@@ -10,6 +10,8 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { Button } from "@/components/ui/button";
 import { studentNavItems } from "@/config/nav";
 import { cn } from "@/lib/utils";
+import { AppTour } from "@/components/app-tour";
+import { NotificationBell } from "@/components/layout/notification-bell";
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -78,6 +80,9 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             <Menu className="h-4 w-4" />
           </Button>
           <Breadcrumbs />
+          <div className="ml-auto">
+            <NotificationBell />
+          </div>
         </header>
 
         {/* Page content — extra bottom padding on mobile for the bottom nav */}
@@ -88,6 +93,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
       {/* ── Mobile Bottom Navigation ─────────────────────────────── */}
       <MobileNav navItems={studentNavItems} />
+      <AppTour role="STUDENT" />
     </div>
   );
 }

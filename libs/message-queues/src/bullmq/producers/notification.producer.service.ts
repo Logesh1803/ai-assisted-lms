@@ -108,4 +108,46 @@ export class NotificationProducerService {
       throw new Error(error);
     }
   }
+
+  async dispatchCourseNoteUploaded(data: {
+    studentName: string;
+    studentEmail: string;
+    courseTitle: string;
+    courseUuid: string;
+    noteTitle: string;
+  }) {
+    try {
+      const { id } = await this.notificationQueue.add(
+        NOTIFICATION_JOBS.COURSE_NOTE_UPLOADED,
+        data,
+        this.defaultJobOptions,
+      );
+      this.logger.log(`Dispatched ${NOTIFICATION_JOBS.COURSE_NOTE_UPLOADED}, job id: ${id}`);
+      return id;
+    } catch (error: any) {
+      throw new Error(error);
+    }
+  }
+
+  async dispatchQuizAttemptedTeacher(data: {
+    teacherName: string;
+    teacherEmail: string;
+    studentName: string;
+    courseTitle: string;
+    courseUuid: string;
+    attemptUuid: string;
+    score: number;
+  }) {
+    try {
+      const { id } = await this.notificationQueue.add(
+        NOTIFICATION_JOBS.QUIZ_ATTEMPTED_TEACHER,
+        data,
+        this.defaultJobOptions,
+      );
+      this.logger.log(`Dispatched ${NOTIFICATION_JOBS.QUIZ_ATTEMPTED_TEACHER}, job id: ${id}`);
+      return id;
+    } catch (error: any) {
+      throw new Error(error);
+    }
+  }
 }

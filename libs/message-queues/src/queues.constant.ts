@@ -9,6 +9,8 @@ export const NOTIFICATION_JOBS = {
   ENROLLMENT_CONFIRMATION: 'enrollment-confirmation',
   QUIZ_COMPLETED: 'quiz-completed',
   LESSON_COMPLETED: 'lesson-completed',
+  COURSE_NOTE_UPLOADED: 'course-note-uploaded',
+  QUIZ_ATTEMPTED_TEACHER: 'quiz-attempted-teacher',
 };
 
 export const VIDEO_JOBS = {

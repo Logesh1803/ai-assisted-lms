@@ -41,12 +41,29 @@ const ERROR_MAP: Array<{ match: string; message: string }> = [
   // AI / Gemini errors
   { match: "ai",                           message: "The AI feature is temporarily unavailable. Please try again later." },
   { match: "gemini",                       message: "The AI service is temporarily unavailable. Please try again later." },
-  { match: "quota",                        message: "The AI service is busy. Please wait a moment and try again." },
 
   // Quiz errors
   { match: "quiz attempt not found",       message: "This quiz attempt doesn't exist." },
   { match: "already submitted",            message: "You have already submitted this quiz." },
 ];
+
+/**
+ * Extracts the retry-after seconds from a quota error message.
+ * Returns null if the error is not a quota error.
+ * e.g. "AI quota exceeded. Please try again in 53 seconds." → 53
+ */
+export function parseQuotaSeconds(error: unknown): number | null {
+  const raw =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+      ? error
+      : "";
+  const lower = raw.toLowerCase();
+  if (!lower.includes("quota exceeded")) return null;
+  const match = raw.match(/(\d+)\s*second/i);
+  return match ? parseInt(match[1], 10) : 60;
+}
 
 /**
  * Returns a user-friendly error message.
@@ -59,6 +76,9 @@ export function getFriendlyError(error: unknown): string {
       : typeof error === "string"
       ? error
       : "Something went wrong.";
+
+  // Quota errors are already user-friendly — preserve the seconds info
+  if (raw.toLowerCase().includes("quota exceeded")) return raw;
 
   const lower = raw.toLowerCase();
 

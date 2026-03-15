@@ -229,4 +229,72 @@ export class UploadService {
   resolveLocalPath(blobFileName: string): string {
     return path.join(this.uploadDir, blobFileName);
   }
+
+  // ─── Upload document (PDF, DOCX, images, etc.) ───────────────────────────────
+
+  private maxDocSizeBytes = 50 * 1024 * 1024; // 50MB
+  private allowedDocTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'text/plain',
+  ];
+
+  validateDocumentFile(file: Express.Multer.File): void {
+    if (!this.allowedDocTypes.includes(file.mimetype)) {
+      throw new BadRequestException(
+        'Invalid file type. Allowed: PDF, Word, PowerPoint, Excel, images, text',
+      );
+    }
+    if (file.size > this.maxDocSizeBytes) {
+      throw new BadRequestException('File size exceeds 50MB limit');
+    }
+  }
+
+  async uploadDocument(
+    file: Express.Multer.File,
+    folder: string = 'course-notes',
+  ): Promise<{
+    blobFileName: string;
+    fileUrl: string;
+    fileSize: bigint;
+    fileType: string;
+    originalName: string;
+  }> {
+    this.validateDocumentFile(file);
+
+    const ext = path.extname(file.originalname);
+    const fileName = `${randomUUID()}${ext}`;
+    const blobFileName = `${folder}/${fileName}`;
+
+    if (this.isS3Mode()) {
+      await this.s3!.send(
+        new PutObjectCommand({
+          Bucket: this.bucket!,
+          Key: blobFileName,
+          Body: file.buffer,
+          ContentType: file.mimetype,
+        }),
+      );
+      const fileUrl = this.cloudfrontUrl
+        ? `${this.cloudfrontUrl}/${blobFileName}`
+        : `https://${this.bucket}.s3.amazonaws.com/${blobFileName}`;
+      return { blobFileName, fileUrl, fileSize: BigInt(file.size), fileType: file.mimetype, originalName: file.originalname };
+    } else {
+      const subDir = path.join(this.uploadDir, folder);
+      if (!fs.existsSync(subDir)) fs.mkdirSync(subDir, { recursive: true });
+      const localPath = path.join(subDir, fileName);
+      fs.writeFileSync(localPath, file.buffer);
+      const fileUrl = `${this.baseUrl}/uploads/${folder}/${fileName}`;
+      return { blobFileName, fileUrl, fileSize: BigInt(file.size), fileType: file.mimetype, originalName: file.originalname };
+    }
+  }
 }
