@@ -19,3 +19,7 @@ next-env.d.ts
 apps/web/.yarn/install-state.gz
 
 **/uploads
+SECOND_REVIEW_DOCUMENT.md
+**/docs
+
+scripts/generate-report.mjs

@@ -74,7 +74,8 @@ export default function StudentCoursesPage() {
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i}>
+            <Card key={i} className="overflow-hidden">
+              <Skeleton className="h-44 w-full rounded-none" />
               <CardHeader>
                 <Skeleton className="h-5 w-3/4" />
               </CardHeader>
@@ -103,14 +104,19 @@ export default function StudentCoursesPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {courses.map((course: any) => (
-            <Card key={course.uuid} className="hover:shadow-md transition-shadow flex flex-col">
-              {course.thumbnail && (
-                <div className="relative h-40 overflow-hidden rounded-t-lg">
+            <Card key={course.uuid} className="hover:shadow-lg transition-all duration-200 flex flex-col overflow-hidden group">
+              {course.thumbnail ? (
+                <div className="relative h-44 overflow-hidden">
                   <img
                     src={course.thumbnail}
                     alt={course.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                </div>
+              ) : (
+                <div className="relative h-44 bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-700 flex items-center justify-center">
+                  <BookOpen className="h-10 w-10 text-white/60" />
                 </div>
               )}
               <CardHeader className="pb-2">

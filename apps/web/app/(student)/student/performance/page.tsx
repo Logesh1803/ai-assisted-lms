@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { enrollmentsApi } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,25 +28,25 @@ export default function PerformancePage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Performance</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Performance</h1>
         <p className="text-muted-foreground mt-1">Track your learning achievements and quiz results</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { icon: BookOpen,   label: "Total Courses",  value: totalCourses  },
-          { icon: Trophy,     label: "Quizzes Taken",  value: totalQuizzes  },
-          { icon: TrendingUp, label: "Average Score",  value: `${avgScore}%` },
-        ].map(({ icon: Icon, label, value }) => (
+          { icon: BookOpen,   label: "Total Courses",  value: totalCourses,   color: "from-violet-500 to-purple-600" },
+          { icon: Trophy,     label: "Quizzes Taken",  value: totalQuizzes,   color: "from-amber-500 to-orange-600"  },
+          { icon: TrendingUp, label: "Average Score",  value: `${avgScore}%`, color: "from-emerald-500 to-teal-600"  },
+        ].map(({ icon: Icon, label, value, color }) => (
           <Card key={label}>
             <CardContent className="flex items-center gap-4 pt-6">
-              <div className="rounded-full bg-muted p-3">
-                <Icon className="h-5 w-5 text-muted-foreground" />
+              <div className={`rounded-xl bg-gradient-to-br ${color} p-3 shadow-md`}>
+                <Icon className="h-5 w-5 text-white" />
               </div>
               <div>
                 {enrollmentsLoading ? (
-                  <Skeleton className="h-7 w-12" />
+                  <Skeleton className="h-7 w-12 mb-1" />
                 ) : (
                   <p className="text-2xl font-bold">{value}</p>
                 )}
@@ -61,12 +61,14 @@ export default function PerformancePage() {
       <section>
         <h2 className="text-lg font-semibold mb-4">Course Progress</h2>
         {enrollmentsLoading ? (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
-              <Card key={i}><CardContent className="pt-4 space-y-2">
-                <Skeleton className="h-5 w-1/3" />
-                <Skeleton className="h-2 w-full" />
-              </CardContent></Card>
+              <Card key={i} className="overflow-hidden">
+                <Skeleton className="h-28 w-full rounded-none" />
+                <CardContent className="pt-4 space-y-2">
+                  <Skeleton className="h-1.5 w-full" />
+                </CardContent>
+              </Card>
             ))}
           </div>
         ) : enrollments.length === 0 ? (
@@ -77,25 +79,42 @@ export default function PerformancePage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {enrollments.map((enrollment: any) => {
-              const progress   = enrollment.progressPercent || enrollment.progress || 0;
+              const progress    = enrollment.progressPercent || enrollment.progress || 0;
               const isCompleted = enrollment.status === "COMPLETED";
-              const course     = enrollment.course || {};
+              const course      = enrollment.course || {};
               return (
-                <Card key={enrollment.uuid}>
-                  <CardContent className="pt-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-sm">{course.title || "Untitled Course"}</h3>
-                        {isCompleted && <CheckCircle2 className="h-4 w-4 text-muted-foreground" />}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={isCompleted ? "default" : "secondary"} className="text-xs">
+                <Card key={enrollment.uuid} className="overflow-hidden hover:shadow-md transition-shadow">
+                  {course.thumbnail ? (
+                    <div className="relative h-28 overflow-hidden">
+                      <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 px-4 py-3 flex items-end justify-between gap-2">
+                        <h3 className="font-semibold text-sm text-white truncate">
+                          {course.title || "Untitled Course"}
+                        </h3>
+                        <Badge variant={isCompleted ? "default" : "secondary"} className="shrink-0 text-xs">
+                          {isCompleted && <CheckCircle2 className="h-3 w-3 mr-1" />}
                           {isCompleted ? "Completed" : "In Progress"}
                         </Badge>
-                        <span className="text-xs font-medium">{Math.round(progress)}%</span>
                       </div>
+                    </div>
+                  ) : (
+                    <div className="relative h-28 bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-700 flex items-end px-4 py-3">
+                      <h3 className="font-semibold text-sm text-white truncate flex-1">
+                        {course.title || "Untitled Course"}
+                      </h3>
+                      <Badge variant={isCompleted ? "default" : "secondary"} className="shrink-0 ml-2 text-xs">
+                        {isCompleted && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                        {isCompleted ? "Completed" : "In Progress"}
+                      </Badge>
+                    </div>
+                  )}
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between text-xs mb-2">
+                      <span className="text-muted-foreground">Progress</span>
+                      <span className="font-medium">{Math.round(progress)}%</span>
                     </div>
                     <Progress value={progress} className="h-1.5" />
                     {enrollment.createdAt && (

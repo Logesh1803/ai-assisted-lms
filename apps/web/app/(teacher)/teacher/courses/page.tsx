@@ -141,13 +141,24 @@ export default function TeacherCoursesPage() {
               {courses.map((course: any) => (
                 <tr key={course.uuid} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="py-3 px-4">
-                    <div>
-                      <p className="font-medium">{course.title}</p>
-                      {course.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-1 max-w-xs">
-                          {course.description}
-                        </p>
+                    <div className="flex items-center gap-3">
+                      {course.thumbnail ? (
+                        <div className="h-10 w-16 rounded-md overflow-hidden shrink-0">
+                          <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="h-10 w-16 rounded-md shrink-0 bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center">
+                          <BookOpen className="h-4 w-4 text-white/70" />
+                        </div>
                       )}
+                      <div>
+                        <p className="font-medium">{course.title}</p>
+                        {course.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-1 max-w-xs">
+                            {course.description}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="py-3 px-4">

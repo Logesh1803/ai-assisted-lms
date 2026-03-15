@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import ReactMarkdown from "react-markdown";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { coursesApi, lessonsApi, progressApi, quizApi } from "@/lib/api";
 import { getFriendlyError } from "@/lib/errors";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -196,7 +196,6 @@ export default function LessonLearnPage({
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-1/2" />
-        <Skeleton className="aspect-video w-full rounded-xl" />
         <Skeleton className="h-64 w-full" />
       </div>
     );
@@ -272,19 +271,17 @@ export default function LessonLearnPage({
         )}
       </div>
 
-      {/* Video Player */}
-      <div className="rounded-xl overflow-hidden bg-black aspect-video">
-        <video
-          ref={videoRef}
-          src={lessonsApi.streamUrl(lessonIdNum)}
-          controls
-          className="w-full h-full"
-          onError={(e) => {
-            const video = e.currentTarget;
-            video.style.display = "none";
-          }}
-        />
-      </div>
+      {/* Video Player — only shown when the lesson has an uploaded video */}
+      {lessonData.videoUrl && (
+        <div className="rounded-xl overflow-hidden bg-black aspect-video">
+          <video
+            ref={videoRef}
+            src={lessonsApi.streamUrl(lessonIdNum)}
+            controls
+            className="w-full h-full"
+          />
+        </div>
+      )}
 
       {/* Lesson Progress in Sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -323,8 +320,8 @@ export default function LessonLearnPage({
                 </CardHeader>
                 <CardContent>
                   {notesData?.content ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      <ReactMarkdown>{notesData.content}</ReactMarkdown>
+                    <div>
+                      <MarkdownRenderer content={notesData.content} />
                     </div>
                   ) : (
                     <div className="text-center py-10 text-muted-foreground">
@@ -570,8 +567,8 @@ export default function LessonLearnPage({
             {lessonData.content && (
               <TabsContent value="content" className="mt-4">
                 <Card>
-                  <CardContent className="pt-6 prose prose-sm dark:prose-invert max-w-none">
-                    <ReactMarkdown>{lessonData.content}</ReactMarkdown>
+                  <CardContent className="pt-6">
+                    <MarkdownRenderer content={lessonData.content} />
                   </CardContent>
                 </Card>
               </TabsContent>

@@ -16,6 +16,7 @@ import {
   SubmitQuizDto,
 } from './dto/quiz.dto';
 import { NotificationProducerService } from 'message-queues/src';
+import { InAppNotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class QuizAttemptService {
@@ -25,6 +26,7 @@ export class QuizAttemptService {
     private prisma: SystemsDatabaseService,
     private geminiService: GeminiService,
     private notificationProducer: NotificationProducerService,
+    private inAppNotification: InAppNotificationService,
   ) {}
 
   // ─── Generate Questions (AI) ──────────────────────────────────────────────
@@ -124,7 +126,7 @@ export class QuizAttemptService {
 
     const course = await this.prisma.course.findUnique({
       where: { id: attempt.course_id },
-      select: { title: true },
+      select: { title: true, uuid: true },
     });
 
     const questions = attempt.questions as any[];
@@ -205,24 +207,20 @@ export class QuizAttemptService {
       },
     });
 
-    // Dispatch quiz result email via queue (non-blocking)
-    const student = await this.prisma.user.findUnique({
-      where: { id: studentId },
-      select: { first_name: true, email: true },
-    });
-    if (student) {
-      this.notificationProducer.dispatchQuizCompleted({
-        studentName: student.first_name,
-        studentEmail: student.email,
-        courseTitle: course!.title,
-        score: scorePercent,
-        totalQuestions: questions.length,
-        correctAnswers: Math.round(totalScore),
-        strongTopics,
-        weakTopics,
-        aiFeedback,
-      }).catch((err) => this.logger.error('Failed to dispatch quiz completed email', err));
-    }
+    // Notify student (email) and teacher (in-app + email) non-blocking
+    this.notifyOnSubmit({
+      studentId,
+      courseId: attempt.course_id,
+      courseTitle: course!.title,
+      courseUuid: course!.uuid,
+      attemptUuid,
+      scorePercent,
+      totalQuestions: questions.length,
+      correctAnswers: Math.round(totalScore),
+      strongTopics,
+      weakTopics,
+      aiFeedback,
+    }).catch((err) => this.logger.error('Failed to send quiz notifications', err));
 
     return updatedAttempt;
   }
@@ -291,5 +289,72 @@ export class QuizAttemptService {
     ]);
 
     return { page, limit, total, attempts };
+  }
+
+  // ─── Internal: notify student + teacher after quiz submit ─────────────────
+
+  private async notifyOnSubmit(data: {
+    studentId: number;
+    courseId: number;
+    courseTitle: string;
+    courseUuid: string;
+    attemptUuid: string;
+    scorePercent: number;
+    totalQuestions: number;
+    correctAnswers: number;
+    strongTopics: string[];
+    weakTopics: string[];
+    aiFeedback?: string;
+  }) {
+    const [student, course] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: data.studentId },
+        select: { first_name: true, email: true },
+      }),
+      this.prisma.course.findUnique({
+        where: { id: data.courseId },
+        include: { teacher: { select: { id: true, first_name: true, email: true } } },
+      }),
+    ]);
+
+    // Email to student
+    if (student) {
+      this.notificationProducer.dispatchQuizCompleted({
+        studentName: student.first_name,
+        studentEmail: student.email,
+        courseTitle: data.courseTitle,
+        score: data.scorePercent,
+        totalQuestions: data.totalQuestions,
+        correctAnswers: data.correctAnswers,
+        strongTopics: data.strongTopics,
+        weakTopics: data.weakTopics,
+        aiFeedback: data.aiFeedback,
+      }).catch((err: any) => this.logger.error('Failed quiz student email', err));
+    }
+
+    // In-app notification + email to teacher
+    if (course?.teacher) {
+      const teacher = course.teacher;
+      const actionUrl = `/teacher/courses/${data.courseUuid}?tab=quiz`;
+
+      await this.inAppNotification.create({
+        userId: teacher.id,
+        title: 'Student Completed Quiz',
+        message: `${student?.first_name ?? 'A student'} scored ${data.scorePercent}% in "${data.courseTitle}"`,
+        type: 'QUIZ_ATTEMPTED' as any,
+        actionUrl,
+        extra: { courseUuid: data.courseUuid, attemptUuid: data.attemptUuid, score: data.scorePercent },
+      });
+
+      this.notificationProducer.dispatchQuizAttemptedTeacher({
+        teacherName: teacher.first_name,
+        teacherEmail: teacher.email,
+        studentName: student?.first_name ?? 'A student',
+        courseTitle: data.courseTitle,
+        courseUuid: data.courseUuid,
+        attemptUuid: data.attemptUuid,
+        score: data.scorePercent,
+      }).catch((err: any) => this.logger.error('Failed quiz teacher email', err));
+    }
   }
 }

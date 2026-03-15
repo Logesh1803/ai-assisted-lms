@@ -57,4 +57,10 @@ export class AiSummaryController {
   delete(@Param("courseUuid") courseUuid: string) {
     return this.aiSummaryService.delete(courseUuid);
   }
+
+  // POST /ai-summary/:courseUuid/my-notes — student generates notes from course summary
+  @Post(":courseUuid/my-notes")
+  generateStudentNotes(@Param("courseUuid") courseUuid: string) {
+    return this.aiSummaryService.generateStudentNotes(courseUuid);
+  }
 }

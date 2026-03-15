@@ -1,6 +1,6 @@
 "use client";
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 export interface AuthUser {
   uuid: string;
@@ -19,6 +19,8 @@ interface AuthState {
   logout: () => void;
 }
 
+// sessionStorage is tab-isolated — each browser tab gets its own independent
+// login session, so a teacher on tab 1 and a student on tab 2 don't interfere.
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
@@ -28,19 +30,22 @@ export const useAuthStore = create<AuthState>()(
       _hasHydrated: false,
       setAuth: (user, token) => {
         if (typeof window !== "undefined") {
-          localStorage.setItem("access_token", token);
+          sessionStorage.setItem("access_token", token);
         }
         set({ user, token, isAuthenticated: true });
       },
       logout: () => {
         if (typeof window !== "undefined") {
-          localStorage.removeItem("access_token");
+          sessionStorage.removeItem("access_token");
         }
         set({ user: null, token: null, isAuthenticated: false });
       },
     }),
     {
       name: "auth-storage",
+      storage: createJSONStorage(() =>
+        typeof window !== "undefined" ? sessionStorage : localStorage
+      ),
       partialize: (state) => ({ user: state.user, token: state.token, isAuthenticated: state.isAuthenticated }),
       onRehydrateStorage: () => (state) => {
         if (state) state._hasHydrated = true;

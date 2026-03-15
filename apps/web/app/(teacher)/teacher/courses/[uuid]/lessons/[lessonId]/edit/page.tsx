@@ -8,7 +8,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
 import { toast } from "sonner";
-import ReactMarkdown from "react-markdown";
 import { lessonsApi } from "@/lib/api";
 import { getFriendlyError } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
@@ -38,9 +37,7 @@ import {
   Loader2,
   Upload,
   Trash2,
-  Sparkles,
   Video,
-  RefreshCw,
   AlertTriangle,
 } from "lucide-react";
 
@@ -65,7 +62,6 @@ export default function EditLessonPage({
   const lessonIdNum = parseInt(lessonId, 10);
 
   const [uploadingVideo, setUploadingVideo] = useState(false);
-  const [generatingNotes, setGeneratingNotes] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const { data: lesson, isLoading } = useQuery({
@@ -73,14 +69,7 @@ export default function EditLessonPage({
     queryFn: () => lessonsApi.getOne(lessonIdNum),
   });
 
-  const { data: notes, refetch: refetchNotes } = useQuery({
-    queryKey: ["lesson-notes-edit", lessonIdNum],
-    queryFn: () => lessonsApi.getNotes(lessonIdNum),
-    retry: false,
-  });
-
   const lessonData = lesson as any;
-  const notesData = notes as any;
 
   const form = useForm<EditLessonValues>({
     resolver: zodResolver(editLessonSchema),
@@ -143,18 +132,6 @@ export default function EditLessonPage({
     }
   };
 
-  const handleGenerateNotes = async () => {
-    setGeneratingNotes(true);
-    try {
-      await lessonsApi.generateNotes(lessonIdNum);
-      await refetchNotes();
-      toast.success("Notes generated!");
-    } catch (err: any) {
-      toast.error(getFriendlyError(err));
-    } finally {
-      setGeneratingNotes(false);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -205,7 +182,6 @@ export default function EditLessonPage({
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="video">Video</TabsTrigger>
-          <TabsTrigger value="notes">AI Notes</TabsTrigger>
         </TabsList>
 
         {/* Details Tab */}
@@ -382,55 +358,6 @@ export default function EditLessonPage({
           </Card>
         </TabsContent>
 
-        {/* Notes Tab */}
-        <TabsContent value="notes" className="mt-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  AI-Generated Notes
-                </CardTitle>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateNotes}
-                  disabled={generatingNotes}
-                >
-                  {generatingNotes ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-3.5 w-3.5" />
-                  )}
-                  {notesData?.content ? "Regenerate" : "Generate Notes"}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {generatingNotes ? (
-                <div className="text-center py-10">
-                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-                  <p className="text-muted-foreground">Generating AI notes...</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    This may take a moment
-                  </p>
-                </div>
-              ) : notesData?.content ? (
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown>{notesData.content}</ReactMarkdown>
-                </div>
-              ) : (
-                <div className="text-center py-10 text-muted-foreground">
-                  <Sparkles className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                  <p className="font-medium">No notes generated yet</p>
-                  <p className="text-sm mt-1">
-                    Click &quot;Generate Notes&quot; to create AI-powered notes for this lesson
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       {/* Delete Confirmation */}

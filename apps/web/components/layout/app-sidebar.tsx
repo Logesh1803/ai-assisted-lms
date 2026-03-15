@@ -36,7 +36,7 @@ export function AppSidebar({ navItems, role, onClose }: AppSidebarProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 py-5 border-b">
+      <div id="tour-sidebar-logo" className="flex items-center gap-2.5 px-5 py-5 border-b">
         <GraduationCap className="h-5 w-5" />
         <span className="font-semibold text-base tracking-tight">ThinkBloom</span>
         <span className="ml-auto text-[10px] font-medium border rounded px-1.5 py-0.5 uppercase tracking-wide text-muted-foreground">
@@ -57,6 +57,7 @@ export function AppSidebar({ navItems, role, onClose }: AppSidebarProps) {
               key={item.url}
               href={item.url}
               onClick={onClose}
+              id={`tour-nav-${item.url.split("/").pop()}`}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                 isActive

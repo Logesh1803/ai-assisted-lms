@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,7 +8,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { coursesApi, lessonsApi, summaryApi } from "@/lib/api";
+import ReactMarkdown from "react-markdown";
+import { coursesApi, lessonsApi, summaryApi, quizApi, discussionApi, courseNotesApi } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getFriendlyError } from "@/lib/errors";
+import { useQuotaCountdown } from "@/hooks/use-quota-countdown";
 import {
   ArrowLeft,
   Edit,
@@ -50,6 +52,16 @@ import {
   GripVertical,
   Video,
   X,
+  Trophy,
+  ChevronDown,
+  ChevronUp,
+  MessageSquare,
+  Pin,
+  Send,
+  Upload,
+  Paperclip,
+  Download,
+  Clock,
 } from "lucide-react";
 
 const editSchema = z.object({
@@ -59,6 +71,22 @@ const editSchema = z.object({
 });
 
 type EditFormValues = z.infer<typeof editSchema>;
+
+function timeAgo(ts: any): string {
+  const m = Math.floor((Date.now() - Number(ts)) / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d`;
+  return new Date(Number(ts)).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+function getInitials(first?: string, last?: string) {
+  return `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase() || "?";
+}
+const AV_COLORS = ["bg-blue-500","bg-violet-500","bg-emerald-500","bg-orange-500","bg-pink-500","bg-teal-500","bg-rose-500","bg-indigo-500"];
+function avColor(name = "") { return AV_COLORS[name.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % AV_COLORS.length]; }
 
 export default function TeacherCourseDetailPage({
   params,
@@ -71,6 +99,16 @@ export default function TeacherCourseDetailPage({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteLessonId, setDeleteLessonId] = useState<number | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
+  const { quotaSeconds: summaryQuotaSeconds, handleQuotaError: handleSummaryQuotaError } = useQuotaCountdown();
+  const [expandedAttempt, setExpandedAttempt] = useState<string | null>(null);
+  const [activeThread, setActiveThread] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState("");
+
+  // Drag-and-drop lesson reorder state
+  const [localLessons, setLocalLessons] = useState<any[]>([]);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const dragNode = useRef<HTMLDivElement | null>(null);
 
   const { data: course, isLoading } = useQuery({
     queryKey: ["teacher-course", uuid],
@@ -83,10 +121,74 @@ export default function TeacherCourseDetailPage({
     retry: false,
   });
 
-  const courseData = course as any;
-  const lessons: any[] = courseData?.lessons || [];
-  const performanceData: any[] = (performance as any) || [];
+  const { data: quizAttemptsData } = useQuery({
+    queryKey: ["course-quiz-attempts", uuid],
+    queryFn: () => quizApi.getAllAttempts(uuid, { limit: 50 }),
+    retry: false,
+  });
 
+  const { data: summaryData, isLoading: summaryLoading } = useQuery({
+    queryKey: ["course-summary", uuid],
+    queryFn: () => summaryApi.get(uuid),
+    retry: false,
+  });
+
+  const { data: threadsData } = useQuery({
+    queryKey: ["discussion-threads", uuid],
+    queryFn: () => discussionApi.getThreads(uuid),
+  });
+
+  const { data: activeThreadData } = useQuery({
+    queryKey: ["discussion-thread", activeThread],
+    queryFn: () => discussionApi.getThread(activeThread!),
+    enabled: !!activeThread,
+  });
+
+
+  const createReplyMutation = useMutation({
+    mutationFn: (threadUuid: string) =>
+      discussionApi.createReply(threadUuid, { content: replyContent }),
+    onSuccess: () => {
+      toast.success("Reply posted!");
+      queryClient.invalidateQueries({ queryKey: ["discussion-thread", activeThread] });
+      queryClient.invalidateQueries({ queryKey: ["discussion-threads", uuid] });
+      setReplyContent("");
+    },
+    onError: (err: any) => toast.error(getFriendlyError(err)),
+  });
+
+  const pinThreadMutation = useMutation({
+    mutationFn: (threadUuid: string) => discussionApi.pinThread(threadUuid),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["discussion-threads", uuid] });
+      queryClient.invalidateQueries({ queryKey: ["discussion-thread", activeThread] });
+    },
+    onError: (err: any) => toast.error(getFriendlyError(err)),
+  });
+
+  const deleteThreadMutation = useMutation({
+    mutationFn: (threadUuid: string) => discussionApi.deleteThread(threadUuid),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["discussion-threads", uuid] });
+      setActiveThread(null);
+    },
+    onError: (err: any) => toast.error(getFriendlyError(err)),
+  });
+
+  const deleteReplyMutation = useMutation({
+    mutationFn: (replyUuid: string) => discussionApi.deleteReply(replyUuid),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["discussion-thread", activeThread] });
+    },
+    onError: (err: any) => toast.error(getFriendlyError(err)),
+  });
+
+  const courseData = course as any;
+
+  const performanceData: any[] = (performance as any) || [];
+  const quizAttempts: any[] = (quizAttemptsData as any)?.attempts || [];
+  const threads: any[] = (threadsData as any)?.threads || [];
+  const threadDetail = activeThreadData as any;
   const form = useForm<EditFormValues>({
     resolver: zodResolver(editSchema),
     values: {
@@ -131,6 +233,59 @@ export default function TeacherCourseDetailPage({
     onError: (err: any) => toast.error(getFriendlyError(err)),
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: ({ id, order }: { id: number; order: number }) =>
+      lessonsApi.update(id, { order }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teacher-course", uuid] });
+    },
+    onError: (err: any) => {
+      toast.error(getFriendlyError(err));
+      // revert to server order on failure
+      queryClient.invalidateQueries({ queryKey: ["teacher-course", uuid] });
+    },
+  });
+
+  // Keep localLessons in sync with server data
+  const serverLessons: any[] = (course as any)?.lessons || [];
+  useEffect(() => {
+    setLocalLessons(serverLessons);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(serverLessons.map((l: any) => l.id))]);
+
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    dragNode.current = e.currentTarget;
+    setDragIndex(index);
+    // slight delay so the drag ghost renders before we style the original
+    requestAnimationFrame(() => {
+      if (dragNode.current) dragNode.current.style.opacity = "0.4";
+    });
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverIndex(index);
+  };
+
+  const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+    if (dragNode.current) dragNode.current.style.opacity = "1";
+    dragNode.current = null;
+
+    if (dragIndex !== null && dragOverIndex !== null && dragIndex !== dragOverIndex) {
+      const reordered = [...localLessons];
+      const [moved] = reordered.splice(dragIndex, 1);
+      reordered.splice(dragOverIndex, 0, moved);
+      setLocalLessons(reordered);
+      reorderMutation.mutate({ id: moved.id, order: dragOverIndex + 1 });
+    }
+
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragLeave = () => setDragOverIndex(null);
+
   const handleGenerateSummary = async () => {
     setGeneratingSummary(true);
     try {
@@ -138,7 +293,7 @@ export default function TeacherCourseDetailPage({
       toast.success("AI summary generated!");
       queryClient.invalidateQueries({ queryKey: ["course-summary", uuid] });
     } catch (err: any) {
-      toast.error(getFriendlyError(err));
+      if (!handleSummaryQuotaError(err, handleGenerateSummary)) toast.error(getFriendlyError(err));
     } finally {
       setGeneratingSummary(false);
     }
@@ -186,6 +341,11 @@ export default function TeacherCourseDetailPage({
             {courseData._count?.lessons || 0} lessons &bull;{" "}
             {courseData._count?.enrollments || 0} students
           </p>
+          {courseData.description && (
+            <p className="text-sm text-muted-foreground mt-1 line-clamp-2 max-w-2xl">
+              {courseData.description}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(true)}>
@@ -230,38 +390,48 @@ export default function TeacherCourseDetailPage({
       <Tabs defaultValue="lessons">
         <TabsList>
           <TabsTrigger value="lessons">Lessons</TabsTrigger>
+          <TabsTrigger value="summary" className="flex items-center gap-1">
+            <Sparkles className="h-3.5 w-3.5" />
+            Summary
+          </TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="quiz-attempts">
+            Quiz Attempts
+            {quizAttempts.length > 0 && (
+              <span className="ml-1.5 rounded-full bg-primary/15 text-primary text-xs px-1.5 py-0.5 font-medium">
+                {quizAttempts.length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="discussion" className="flex items-center gap-1">
+            <MessageSquare className="h-3.5 w-3.5" />
+            Discussion
+            {threads.length > 0 && (
+              <span className="ml-1 bg-primary/15 text-primary text-[10px] rounded-full px-1.5 py-0.5 font-medium">
+                {threads.length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="notes" className="flex items-center gap-1">
+            <Paperclip className="h-3.5 w-3.5" />
+            Notes & Files
+          </TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         {/* Lessons Tab */}
         <TabsContent value="lessons" className="space-y-4 mt-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold">Course Lessons ({lessons.length})</h2>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleGenerateSummary}
-                disabled={generatingSummary}
-              >
-                {generatingSummary ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Sparkles className="h-3.5 w-3.5" />
-                )}
-                Generate AI Summary
+            <h2 className="font-semibold">Course Lessons ({localLessons.length})</h2>
+            <Link href={`/teacher/courses/${uuid}/lessons/create`}>
+              <Button size="sm">
+                <Plus className="h-3.5 w-3.5" />
+                Add Lesson
               </Button>
-              <Link href={`/teacher/courses/${uuid}/lessons/create`}>
-                <Button size="sm">
-                  <Plus className="h-3.5 w-3.5" />
-                  Add Lesson
-                </Button>
-              </Link>
-            </div>
+            </Link>
           </div>
 
-          {lessons.length === 0 ? (
+          {localLessons.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                 <FileText className="h-12 w-12 text-muted-foreground mb-4" />
@@ -279,11 +449,23 @@ export default function TeacherCourseDetailPage({
             </Card>
           ) : (
             <div className="space-y-2">
-              {lessons.map((lesson: any, index: number) => (
-                <Card key={lesson.id} className="hover:shadow-sm transition-shadow">
-                  <CardContent className="py-3">
+              {localLessons.map((lesson: any, index: number) => (
+                <div
+                  key={lesson.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnd={handleDragEnd}
+                  onDragLeave={handleDragLeave}
+                  className={`rounded-lg border bg-card transition-all ${
+                    dragOverIndex === index && dragIndex !== index
+                      ? "border-primary ring-1 ring-primary scale-[1.01] shadow-md"
+                      : "hover:shadow-sm"
+                  }`}
+                >
+                  <div className="py-3 px-6">
                     <div className="flex items-center gap-3">
-                      <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <GripVertical className="h-4 w-4 text-muted-foreground shrink-0 cursor-grab active:cursor-grabbing" />
                       <div className="flex items-center justify-center h-7 w-7 rounded-full bg-muted text-sm font-medium shrink-0">
                         {index + 1}
                       </div>
@@ -296,7 +478,7 @@ export default function TeacherCourseDetailPage({
                         )}
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        {lesson.videoUrl && (
+                        {lesson.video_url && (
                           <Badge variant="secondary" className="text-xs gap-1">
                             <Video className="h-3 w-3" />
                             Video
@@ -317,11 +499,92 @@ export default function TeacherCourseDetailPage({
                         </Button>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               ))}
             </div>
           )}
+        </TabsContent>
+
+        {/* Summary Tab */}
+        <TabsContent value="summary" className="mt-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold">Course Summary</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">AI-generated summary shown to students</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateSummary}
+              disabled={generatingSummary || summaryQuotaSeconds > 0}
+              className="gap-2"
+            >
+              {generatingSummary ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : summaryQuotaSeconds > 0 ? (
+                <Clock className="h-3.5 w-3.5" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5" />
+              )}
+              {generatingSummary
+                ? "Generating..."
+                : summaryQuotaSeconds > 0
+                ? `Retry in ${summaryQuotaSeconds}s`
+                : (summaryData as any) ? "Regenerate" : "Generate Summary"}
+            </Button>
+          </div>
+
+          {summaryQuotaSeconds > 0 && (
+            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+              <Clock className="h-4 w-4 shrink-0 animate-pulse" />
+              <span>
+                AI quota reached — retrying automatically in{" "}
+                <span className="font-semibold tabular-nums">{summaryQuotaSeconds}s</span>
+              </span>
+            </div>
+          )}
+
+          <Card>
+            <CardContent className="pt-6">
+              {summaryLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                  <Skeleton className="h-4 w-4/6" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+              ) : (summaryData as any) ? (
+                <div className="space-y-5">
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <ReactMarkdown>{(summaryData as any).summary}</ReactMarkdown>
+                  </div>
+                  {(summaryData as any).key_points?.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-3">Key Points</h4>
+                      <ul className="space-y-2">
+                        {(summaryData as any).key_points.map((point: string, i: number) => (
+                          <li key={i} className="flex items-start gap-2 text-sm">
+                            <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                            <span>{point}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Sparkles className="h-10 w-10 text-muted-foreground mb-3 opacity-30" />
+                  <p className="font-medium text-sm">No summary generated yet</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Click "Generate Summary" to create an AI summary from your lesson content
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Performance Tab */}
@@ -345,32 +608,34 @@ export default function TeacherCourseDetailPage({
                       <tr className="border-b">
                         <th className="text-left py-3 pr-4 font-medium text-muted-foreground">Student</th>
                         <th className="text-left py-3 pr-4 font-medium text-muted-foreground">Progress</th>
+                        <th className="text-left py-3 pr-4 font-medium text-muted-foreground">Lessons Done</th>
                         <th className="text-left py-3 pr-4 font-medium text-muted-foreground">Quiz Score</th>
                         <th className="text-left py-3 font-medium text-muted-foreground">Enrolled</th>
                       </tr>
                     </thead>
                     <tbody>
                       {performanceData.map((item: any, index: number) => (
-                        <tr key={item.enrollmentUuid || item.studentUuid || item.email || index} className="border-b last:border-0">
+                        <tr key={item.student?.uuid || index} className="border-b last:border-0">
                           <td className="py-3 pr-4">
                             <div>
                               <p className="font-medium">
-                                {item.student?.firstName || item.firstName} {item.student?.lastName || item.lastName || ""}
+                                {item.student?.first_name} {item.student?.last_name || ""}
                               </p>
-                              <p className="text-xs text-muted-foreground">
-                                {item.student?.email || item.email}
-                              </p>
+                              <p className="text-xs text-muted-foreground">{item.student?.email}</p>
                             </div>
                           </td>
                           <td className="py-3 pr-4">
                             <div className="flex items-center gap-2">
-                              <Progress value={item.progressPercent || item.progress || 0} className="h-1.5 w-24" />
-                              <span className="text-xs">{Math.round(item.progressPercent || item.progress || 0)}%</span>
+                              <Progress value={item.progress || 0} className="h-1.5 w-24" />
+                              <span className="text-xs">{Math.round(item.progress || 0)}%</span>
                             </div>
                           </td>
+                          <td className="py-3 pr-4 text-sm">
+                            {item.lessonsCompleted ?? "—"}
+                          </td>
                           <td className="py-3 pr-4">
-                            {item.lastQuizScore != null ? (
-                              <span className="font-medium">{item.lastQuizScore}%</span>
+                            {item.latestQuizScore != null ? (
+                              <span className="font-medium">{item.latestQuizScore}%</span>
                             ) : (
                               <span className="text-muted-foreground">—</span>
                             )}
@@ -386,6 +651,349 @@ export default function TeacherCourseDetailPage({
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Quiz Attempts Tab */}
+        <TabsContent value="quiz-attempts" className="mt-4 space-y-3">
+          {quizAttempts.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                <Trophy className="h-12 w-12 text-muted-foreground mb-4 opacity-40" />
+                <p className="font-medium">No quiz attempts yet</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Quiz attempts from students will appear here once they take the quiz
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">
+                {quizAttempts.length} attempt{quizAttempts.length !== 1 ? "s" : ""} across all students
+              </p>
+              {quizAttempts.map((attempt: any) => {
+                const isExpanded = expandedAttempt === attempt.uuid;
+                const strongTopics: string[] = attempt.strong_topics || [];
+                const weakTopics: string[] = attempt.weak_topics || [];
+                return (
+                  <Card key={attempt.uuid}>
+                    <CardContent className="pt-4">
+                      {/* Summary row */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <p className="font-semibold text-sm">
+                              {attempt.student?.first_name} {attempt.student?.last_name || ""}
+                            </p>
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                              attempt.score >= 70
+                                ? "bg-green-500/15 text-green-600 dark:text-green-400"
+                                : attempt.score >= 40
+                                ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                : "bg-red-500/15 text-red-600 dark:text-red-400"
+                            }`}>
+                              {attempt.score}%
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{attempt.student?.email}</p>
+                          <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground flex-wrap">
+                            <span>{attempt.correct_answers}/{attempt.total_questions} correct</span>
+                            {attempt.submitted_at && (
+                              <span>Submitted {formatDate(attempt.submitted_at)}</span>
+                            )}
+                            {!attempt.submitted_at && (
+                              <span className="text-amber-500">In progress</span>
+                            )}
+                          </div>
+                        </div>
+                        {attempt.submitted_at && (
+                          <button
+                            onClick={() => setExpandedAttempt(isExpanded ? null : attempt.uuid)}
+                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                          >
+                            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            {isExpanded ? "Hide" : "Details"}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Expanded: questions + answers + topics + AI feedback */}
+                      {isExpanded && (() => {
+                        const questions: any[] = attempt.questions || [];
+                        const answers: any[] = attempt.answers || [];
+                        const answerMap = new Map(answers.map((a: any) => [String(a.questionId), a.answer]));
+
+                        return (
+                          <div className="mt-4 pt-4 border-t space-y-5">
+                            {/* Q&A breakdown */}
+                            {questions.length > 0 && (
+                              <div className="space-y-4">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                  Questions &amp; Answers
+                                </p>
+                                {questions.map((q: any, qi: number) => {
+                                  const studentAnswer = answerMap.get(String(q.id)) ?? "—";
+                                  const isCorrect = studentAnswer === q.correct_answer;
+                                  const isMCQ = q.type === "MCQ";
+                                  return (
+                                    <div key={q.id} className="rounded-lg border p-3 space-y-2">
+                                      <div className="flex items-start gap-2">
+                                        <span className={`shrink-0 text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full mt-0.5 ${
+                                          isCorrect
+                                            ? "bg-green-500/15 text-green-600 dark:text-green-400"
+                                            : "bg-red-500/15 text-red-600 dark:text-red-400"
+                                        }`}>
+                                          {qi + 1}
+                                        </span>
+                                        <div className="flex-1 space-y-1.5">
+                                          <p className="text-sm font-medium">{q.question}</p>
+                                          <span className="inline-block text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                                            {q.topic} · {isMCQ ? "MCQ" : "Short Answer"}
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      <div className="ml-7 space-y-1.5 text-sm">
+                                        {/* Student's answer */}
+                                        <div className={`flex gap-2 rounded px-2 py-1.5 ${
+                                          isCorrect ? "bg-green-500/8" : "bg-red-500/8"
+                                        }`}>
+                                          <span className="shrink-0 font-medium text-xs text-muted-foreground w-20">Student:</span>
+                                          <span className={`flex-1 ${
+                                            isCorrect
+                                              ? "text-green-700 dark:text-green-300"
+                                              : "text-red-700 dark:text-red-300"
+                                          }`}>
+                                            {studentAnswer}
+                                          </span>
+                                          <span className="shrink-0 text-xs">
+                                            {isCorrect ? "✓" : "✗"}
+                                          </span>
+                                        </div>
+                                        {/* Correct answer (only show if wrong) */}
+                                        {!isCorrect && (
+                                          <div className="flex gap-2 rounded bg-green-500/8 px-2 py-1.5">
+                                            <span className="shrink-0 font-medium text-xs text-muted-foreground w-20">Correct:</span>
+                                            <span className="flex-1 text-green-700 dark:text-green-300">
+                                              {q.correct_answer}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* Strong / Weak topics */}
+                            {(strongTopics.length > 0 || weakTopics.length > 0) && (
+                              <div className="grid grid-cols-2 gap-4">
+                                {strongTopics.length > 0 && (
+                                  <div>
+                                    <p className="text-xs font-medium text-muted-foreground mb-1.5">Strong Topics</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {strongTopics.map((t) => (
+                                        <span key={t} className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full">
+                                          {t}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                {weakTopics.length > 0 && (
+                                  <div>
+                                    <p className="text-xs font-medium text-muted-foreground mb-1.5">Weak Topics</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {weakTopics.map((t) => (
+                                        <span key={t} className="text-xs bg-red-500/10 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full">
+                                          {t}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* AI Feedback */}
+                            {attempt.ai_feedback && (
+                              <div className="rounded-lg bg-muted p-3">
+                                <p className="text-xs font-medium flex items-center gap-1.5 mb-1.5">
+                                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                                  AI Feedback
+                                </p>
+                                <p className="text-sm text-muted-foreground leading-relaxed">
+                                  {attempt.ai_feedback}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </>
+          )}
+        </TabsContent>
+
+        {/* Discussion Tab */}
+        <TabsContent value="discussion" className="mt-4">
+          {!activeThread ? (
+            /* ── Thread list (WhatsApp style) ── */
+            <div className="flex flex-col border rounded-xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-primary" />
+                  <span className="font-semibold text-sm">Discussion</span>
+                  {threads.length > 0 && <span className="text-xs text-muted-foreground">({threads.length})</span>}
+                </div>
+              </div>
+              {threads.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                  <MessageSquare className="h-10 w-10 mb-3 opacity-20" />
+                  <p className="font-medium text-sm">No threads yet</p>
+                  <p className="text-xs mt-1">Students can start discussions from the course page</p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {threads.map((thread: any) => (
+                    <div key={thread.uuid} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setActiveThread(thread.uuid)}>
+                      <div className={`h-11 w-11 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0 ${avColor(thread.user?.first_name)}`}>
+                        {getInitials(thread.user?.first_name, thread.user?.last_name)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-sm truncate">
+                            {thread.is_pinned && <Pin className="h-3 w-3 inline mr-1 text-primary" />}{thread.title}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(thread.created_at)}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 mt-0.5">
+                          <p className="text-xs text-muted-foreground truncate">{thread.user?.first_name}: {thread.content}</p>
+                          {(thread._count?.replies ?? 0) > 0 && (
+                            <span className="shrink-0 h-4 min-w-[1rem] rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                              {thread._count.replies}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : threadDetail ? (
+            /* ── Chat view ── */
+            <div className="flex flex-col h-[580px] border rounded-xl overflow-hidden">
+              {/* Chat header */}
+              <div className="flex items-center gap-2 px-3 py-2.5 border-b bg-muted/30 shrink-0">
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setActiveThread(null)}>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 ${avColor(threadDetail.user?.first_name)}`}>
+                  {getInitials(threadDetail.user?.first_name, threadDetail.user?.last_name)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate leading-tight">
+                    {threadDetail.is_pinned && <Pin className="h-3 w-3 inline mr-1 text-primary" />}{threadDetail.title}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground leading-tight">{threadDetail.user?.first_name} · {threadDetail.replies?.length || 0} replies</p>
+                </div>
+                <div className="flex gap-1 shrink-0">
+                  <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => pinThreadMutation.mutate(threadDetail.uuid)} disabled={pinThreadMutation.isPending}>
+                    <Pin className="h-3 w-3" />{threadDetail.is_pinned ? "Unpin" : "Pin"}
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => deleteThreadMutation.mutate(threadDetail.uuid)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {/* Original post */}
+                <div className="flex gap-2.5 group">
+                  <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5 ${avColor(threadDetail.user?.first_name)}`}>
+                    {getInitials(threadDetail.user?.first_name, threadDetail.user?.last_name)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-semibold">{threadDetail.user?.first_name} {threadDetail.user?.last_name}</span>
+                      {threadDetail.user?.role === "TEACHER" && <Badge variant="secondary" className="text-[10px] py-0 h-4">Teacher</Badge>}
+                      <span className="text-[11px] text-muted-foreground">{timeAgo(threadDetail.created_at)}</span>
+                    </div>
+                    <div className="bg-muted/70 rounded-2xl rounded-tl-none px-3.5 py-2.5 max-w-[90%]">
+                      <p className="text-xs font-semibold mb-0.5 text-foreground/60">{threadDetail.title}</p>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{threadDetail.content}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Divider */}
+                {(threadDetail.replies?.length ?? 0) > 0 && (
+                  <div className="flex items-center gap-2 py-1">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-[11px] text-muted-foreground">{threadDetail.replies.length} {threadDetail.replies.length === 1 ? "reply" : "replies"}</span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+                )}
+                {threadDetail.replies?.length === 0 && (
+                  <div className="flex items-center justify-center py-6 text-muted-foreground">
+                    <p className="text-xs">No replies yet — reply to help this student!</p>
+                  </div>
+                )}
+
+                {/* Reply messages */}
+                {threadDetail.replies?.map((reply: any) => (
+                  <div key={reply.uuid} className="flex gap-2.5 group">
+                    <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5 ${avColor(reply.user?.first_name)}`}>
+                      {getInitials(reply.user?.first_name, reply.user?.last_name)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-semibold">{reply.user?.first_name} {reply.user?.last_name}</span>
+                        {reply.user?.role === "TEACHER" && <Badge variant="secondary" className="text-[10px] py-0 h-4">Teacher</Badge>}
+                        <span className="text-[11px] text-muted-foreground">{timeAgo(reply.created_at)}</span>
+                        <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-destructive ml-auto opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteReplyMutation.mutate(reply.uuid)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <div className="bg-muted/60 rounded-2xl rounded-tl-none px-3.5 py-2.5 max-w-[90%]">
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{reply.content}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Input bar */}
+              <div className="shrink-0 border-t px-3 py-2.5 bg-background flex items-end gap-2">
+                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-[10px] font-bold text-primary-foreground shrink-0 mb-0.5">T</div>
+                <Textarea
+                  placeholder="Reply as teacher... (Enter to send)"
+                  rows={1}
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (replyContent.trim() && !createReplyMutation.isPending) createReplyMutation.mutate(activeThread); } }}
+                  className="resize-none flex-1 min-h-[36px] max-h-24 text-sm"
+                />
+                <Button size="icon" className="h-9 w-9 shrink-0" disabled={!replyContent.trim() || createReplyMutation.isPending} onClick={() => createReplyMutation.mutate(activeThread)}>
+                  {createReplyMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Notes & Files Tab */}
+        <TabsContent value="notes" className="mt-4">
+          <CourseNotesTab courseUuid={uuid} />
         </TabsContent>
 
         {/* Settings Tab */}
@@ -410,7 +1018,7 @@ export default function TeacherCourseDetailPage({
                 </div>
                 <div>
                   <p className="text-muted-foreground">Lessons</p>
-                  <p className="font-medium mt-1">{lessons.length}</p>
+                  <p className="font-medium mt-1">{localLessons.length}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Students Enrolled</p>
@@ -523,6 +1131,186 @@ export default function TeacherCourseDetailPage({
               {deleteLessonMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               Delete Lesson
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─── Course Notes Tab ─────────────────────────────────────────────────────────
+
+function CourseNotesTab({ courseUuid }: { courseUuid: string }) {
+  const queryClient = useQueryClient();
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: notes = [], isLoading } = useQuery({
+    queryKey: ["course-notes", courseUuid],
+    queryFn: () => courseNotesApi.getByCourse(courseUuid) as unknown as Promise<any[]>,
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: () => courseNotesApi.upload(courseUuid, { title, description }, file ?? undefined),
+    onSuccess: () => {
+      toast.success("Note uploaded and students notified!");
+      queryClient.invalidateQueries({ queryKey: ["course-notes", courseUuid] });
+      setUploadOpen(false);
+      setTitle(""); setDescription(""); setFile(null);
+    },
+    onError: (err: any) => toast.error(getFriendlyError(err)),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (noteUuid: string) => courseNotesApi.remove(noteUuid),
+    onSuccess: () => {
+      toast.success("Note deleted.");
+      queryClient.invalidateQueries({ queryKey: ["course-notes", courseUuid] });
+    },
+    onError: (err: any) => toast.error(getFriendlyError(err)),
+  });
+
+  const fileIcon = (type?: string) => {
+    if (!type) return <FileText className="h-4 w-4" />;
+    if (type.includes("pdf")) return <FileText className="h-4 w-4 text-red-500" />;
+    if (type.includes("image")) return <FileText className="h-4 w-4 text-blue-500" />;
+    return <Paperclip className="h-4 w-4 text-muted-foreground" />;
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold">Notes & Resources</h3>
+          <p className="text-sm text-muted-foreground">Upload files and notes — enrolled students are notified automatically.</p>
+        </div>
+        <Button onClick={() => setUploadOpen(true)} size="sm" className="gap-1.5">
+          <Upload className="h-3.5 w-3.5" />
+          Upload Resource
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">{[1,2].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>
+      ) : (notes as any[]).length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-14 text-center">
+            <Paperclip className="h-10 w-10 text-muted-foreground mb-3 opacity-40" />
+            <p className="font-medium">No resources yet</p>
+            <p className="text-sm text-muted-foreground mt-1">Upload notes, PDFs, or files for your students.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {(notes as any[]).map((note: any) => (
+            <Card key={note.uuid}>
+              <CardContent className="flex items-center gap-3 py-3 px-4">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+                  {fileIcon(note.fileType)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{note.title}</p>
+                  {note.description && (
+                    <p className="text-xs text-muted-foreground truncate">{note.description}</p>
+                  )}
+                  {note.fileName && (
+                    <p className="text-xs text-muted-foreground">{note.fileName}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {note.fileUrl && (
+                    <a href={note.fileUrl} target="_blank" rel="noopener noreferrer">
+                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
+                    </a>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive hover:text-destructive"
+                    onClick={() => deleteMutation.mutate(note.uuid)}
+                    disabled={deleteMutation.isPending}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Upload Dialog */}
+      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upload Resource</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Title *</label>
+              <Input
+                placeholder="e.g., Chapter 3 Notes, Formula Sheet"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Description (optional)</label>
+              <Textarea
+                placeholder="Brief description of this resource..."
+                rows={2}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">File (optional)</label>
+              <div
+                className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {file ? (
+                  <div className="flex items-center justify-center gap-2 text-sm">
+                    <Paperclip className="h-4 w-4 text-primary" />
+                    <span className="font-medium truncate max-w-[200px]">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    <Upload className="h-5 w-5 mx-auto mb-1 opacity-50" />
+                    Click to select file (PDF, Word, images, up to 50MB)
+                  </div>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.webp,.txt"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" onClick={() => setUploadOpen(false)}>Cancel</Button>
+              <Button
+                onClick={() => uploadMutation.mutate()}
+                disabled={!title.trim() || uploadMutation.isPending}
+              >
+                {uploadMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                Upload & Notify Students
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

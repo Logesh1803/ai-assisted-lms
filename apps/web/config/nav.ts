@@ -42,13 +42,16 @@ export const teacherNavItems: NavItem[] = [
 // URL segments that should show as a custom label in breadcrumbs.
 // Segments not listed here will be title-cased automatically.
 export const breadcrumbLabels: Record<string, string> = {
-  student:      "",          // hidden (role prefix)
-  teacher:      "",          // hidden (role prefix)
+  student:       "",           // hidden — role prefix, no standalone page
+  teacher:       "",           // hidden — role prefix, no standalone page
   "my-learning": "My Learning",
-  chatbot:      "AI Chat",
-  "ai-video":   "Video Analysis",
-  learn:        "",          // hidden (no page at this intermediate path)
-  lessons:      "Lessons",
-  create:       "Create",
-  edit:         "Edit",
+  chatbot:       "AI Chat",
+  "ai-video":    "Video Analysis",
+  learn:         "",           // hidden — no page at this intermediate path
+  lessons:       "",           // hidden — lessons are shown inside course detail tabs
+  create:        "Create",
+  edit:          "Edit",
+  dashboard:     "Dashboard",
+  performance:   "Performance",
+  students:      "Students",
 };

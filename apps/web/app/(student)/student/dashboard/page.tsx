@@ -53,14 +53,14 @@ export default function StudentDashboard() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { icon: BookOpen,      label: "Enrolled Courses",  value: enrolledCount  },
-          { icon: CheckCircle2,  label: "Completed",         value: completedCount },
-          { icon: Trophy,        label: "Avg Quiz Score",    value: `${avgScore}%` },
-        ].map(({ icon: Icon, label, value }) => (
-          <Card key={label}>
+          { icon: BookOpen,      label: "Enrolled Courses",  value: enrolledCount,  color: "from-violet-500 to-purple-600"  },
+          { icon: CheckCircle2,  label: "Completed",         value: completedCount, color: "from-emerald-500 to-teal-600"  },
+          { icon: Trophy,        label: "Avg Quiz Score",    value: `${avgScore}%`, color: "from-amber-500 to-orange-600"  },
+        ].map(({ icon: Icon, label, value, color }) => (
+          <Card key={label} className="overflow-hidden">
             <CardContent className="flex items-center gap-4 pt-6">
-              <div className="rounded-full bg-muted p-3">
-                <Icon className="h-5 w-5 text-muted-foreground" />
+              <div className={`rounded-xl bg-gradient-to-br ${color} p-3 shadow-md`}>
+                <Icon className="h-5 w-5 text-white" />
               </div>
               <div>
                 {enrollmentsLoading ? <Skeleton className="h-7 w-10 mb-1" /> : <p className="text-2xl font-bold">{value}</p>}
@@ -105,22 +105,39 @@ export default function StudentDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {enrollments.slice(0, 4).map((enrollment: any) => {
               const progress = enrollment.progressPercent || enrollment.progress || 0;
+              const course = enrollment.course || {};
               return (
-                <Card key={enrollment.uuid}>
-                  <CardContent className="pt-5">
-                    <div className="flex items-start justify-between gap-2 mb-3">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium truncate">
-                          {enrollment.course?.title || enrollment.courseTitle || "Untitled Course"}
+                <Card key={enrollment.uuid} className="overflow-hidden hover:shadow-md transition-shadow">
+                  {course.thumbnail ? (
+                    <div className="relative h-28 overflow-hidden">
+                      <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-3">
+                        <h3 className="font-semibold text-sm text-white truncate">
+                          {course.title || enrollment.courseTitle || "Untitled Course"}
                         </h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Enrolled {enrollment.createdAt ? formatDate(enrollment.createdAt) : ""}
-                        </p>
                       </div>
-                      <Badge variant={enrollment.status === "COMPLETED" ? "default" : "secondary"} className="text-xs shrink-0">
+                      <Badge
+                        variant={enrollment.status === "COMPLETED" ? "default" : "secondary"}
+                        className="absolute top-2 right-2 text-xs"
+                      >
                         {enrollment.status === "COMPLETED" ? "Completed" : "In Progress"}
                       </Badge>
                     </div>
+                  ) : (
+                    <div className="relative h-28 bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-700 flex items-end p-3">
+                      <h3 className="font-semibold text-sm text-white truncate flex-1">
+                        {course.title || enrollment.courseTitle || "Untitled Course"}
+                      </h3>
+                      <Badge variant={enrollment.status === "COMPLETED" ? "default" : "secondary"} className="text-xs shrink-0 ml-2">
+                        {enrollment.status === "COMPLETED" ? "Completed" : "In Progress"}
+                      </Badge>
+                    </div>
+                  )}
+                  <CardContent className="pt-3 pb-4">
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Enrolled {enrollment.createdAt ? formatDate(enrollment.createdAt) : ""}
+                    </p>
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">Progress</span>
@@ -129,7 +146,7 @@ export default function StudentDashboard() {
                       <Progress value={progress} className="h-1.5" />
                     </div>
                     <div className="mt-3 flex justify-end">
-                      <Link href={`/student/courses/${enrollment.course?.uuid || enrollment.courseUuid}`}>
+                      <Link href={`/student/courses/${course.uuid || enrollment.courseUuid}`}>
                         <Button size="sm" variant="outline">
                           <Play className="h-3 w-3" />
                           Continue
@@ -154,23 +171,38 @@ export default function StudentDashboard() {
         </div>
 
         {coursesLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <Card key={i}><CardContent className="pt-6 space-y-3">
-                <Skeleton className="h-5 w-3/4" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-2/3" />
-              </CardContent></Card>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="overflow-hidden">
+                <Skeleton className="h-36 w-full rounded-none" />
+                <CardContent className="pt-4 space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-8 w-full mt-2" />
+                </CardContent>
+              </Card>
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {courses.map((course: any) => (
-              <Card key={course.uuid} className="flex flex-col">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold line-clamp-2">{course.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col gap-3">
+              <Card key={course.uuid} className="flex flex-col overflow-hidden hover:shadow-lg transition-all duration-200 group">
+                {course.thumbnail ? (
+                  <div className="relative h-36 overflow-hidden">
+                    <img
+                      src={course.thumbnail}
+                      alt={course.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                  </div>
+                ) : (
+                  <div className="relative h-36 bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-700 flex items-center justify-center">
+                    <BookOpen className="h-8 w-8 text-white/70" />
+                  </div>
+                )}
+                <CardContent className="flex-1 flex flex-col gap-3 pt-4">
+                  <p className="text-sm font-semibold line-clamp-2 leading-snug">{course.title}</p>
                   {course.description && (
                     <p className="text-xs text-muted-foreground line-clamp-2">{course.description}</p>
                   )}
