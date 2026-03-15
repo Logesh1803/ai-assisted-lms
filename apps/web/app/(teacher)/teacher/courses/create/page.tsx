@@ -146,27 +146,46 @@ export default function CreateCoursePage() {
         </div>
       </div>
 
-      {/* Mode toggle */}
-      <div className="flex gap-2 p-1 bg-muted rounded-lg w-fit">
-        <button
-          onClick={() => setMode("manual")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            mode === "manual" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <PenLine className="h-4 w-4" />
-          Manual
-        </button>
-        <button
-          onClick={() => setMode("ai")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            mode === "ai" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Sparkles className="h-4 w-4" />
-          Generate with AI
-        </button>
-      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Course Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <fieldset disabled={isLoading} className="space-y-6 border-0 p-0 m-0 min-w-0">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Course Title *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Introduction to Machine Learning" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Describe what students will learn in this course..."
+                        rows={4}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
       {/* AI Mode */}
       {mode === "ai" && (
@@ -383,6 +402,7 @@ export default function CreateCoursePage() {
           </CardContent>
         </Card>
       )}
+
     </div>
   );
 }
