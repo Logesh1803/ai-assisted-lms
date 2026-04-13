@@ -74,6 +74,20 @@ export class EnrollmentService {
         orderBy: { enrolled_at: 'desc' },
         include: {
           course: { select: { uuid: true, title: true, thumbnail: true, description: true } },
+          quiz_attempts: {
+            where: { submitted_at: { not: null } },
+            orderBy: { created_at: 'desc' },
+            select: {
+              uuid: true,
+              score: true,
+              total_questions: true,
+              correct_answers: true,
+              strong_topics: true,
+              weak_topics: true,
+              submitted_at: true,
+              created_at: true,
+            },
+          },
         },
       }),
     ]);

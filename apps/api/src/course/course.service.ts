@@ -209,11 +209,9 @@ export class CourseService {
     });
     const title = existing ? `${generated.title} (2)` : generated.title;
 
-    // Generate AI thumbnail via Pollinations.ai (free, no API key required)
-    const thumbnailPrompt = encodeURIComponent(
-      `${title} online course thumbnail, educational, modern flat design, vibrant colors, digital learning`,
-    );
-    const thumbnail = `https://image.pollinations.ai/prompt/${thumbnailPrompt}?width=800&height=450&nologo=true`;
+    // Generate a deterministic thumbnail using the course title as seed
+    const seed = encodeURIComponent(title.replace(/\s+/g, '-').toLowerCase());
+    const thumbnail = `https://picsum.photos/seed/${seed}/800/450`;
 
     const course = await this.db.course.create({
       data: {

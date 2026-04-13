@@ -15,9 +15,14 @@
     "web:build:standalone": "node scripts/build-standalone-nextjs.ts",
     "prisma:system:generate": "npx prisma generate --config=libs/data-sources/prisma/system/prisma.config.ts",
     "prisma:system:deploy": "npx prisma migrate deploy --config=libs/data-sources/prisma/system/prisma.config.ts",
-    "prisma:system:push": "npx prisma db push --config=libs/data-sources/prisma/system/prisma.config.ts"
+    "prisma:system:push": "npx prisma db push --config=libs/data-sources/prisma/system/prisma.config.ts",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:report": "playwright show-report"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@prisma/adapter-pg": "^7.1.0",
     "@prisma/client": "^7.1.0",
     "@types/multer": "^2.0.0",
@@ -46,6 +51,7 @@
     "dotenv": "^17.2.3",
     "ioredis": "^5.8.2",
     "pg": "^8.16.3",
+    "pptxgenjs": "^4.0.1",
     "web": "workspace:^",
     "workspace": "^0.0.1-preview.2"
   }

@@ -23,3 +23,19 @@ SECOND_REVIEW_DOCUMENT.md
 **/docs
 
 scripts/generate-report.mjs
+generate_deck.js
+generate_report.js
+ThinkBloom_LMS_Final_Report.docx
+ThinkBloom_LMS_Final_Report.md
+ThinkBloom_LMS_Presentation.pptx
+
+**/.obsidian
+**/.playwright-mcp
+**/tests
+**/test-results
+**/playwright-report
+playwright.config.ts
+**/screenshots
+**/.auth
+**/.claude
+
