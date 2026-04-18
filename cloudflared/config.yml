@@ -1,0 +1,18 @@
+# Replace <TUNNEL_ID> with the ID from: cloudflared tunnel create thinkblooms
+tunnel: <TUNNEL_ID>
+credentials-file: /home/logesh/.cloudflared/<TUNNEL_ID>.json
+
+ingress:
+  # API subdomain → NestJS (via Nginx)
+  - hostname: api.thinkblooms.in
+    service: http://localhost:80
+
+  # Main domain → Next.js (via Nginx)
+  - hostname: thinkblooms.in
+    service: http://localhost:80
+
+  - hostname: www.thinkblooms.in
+    service: http://localhost:80
+
+  # Required catch-all
+  - service: http_status:404

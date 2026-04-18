@@ -1,0 +1,173 @@
+2026-04-13 21:30:59: [32m[Nest] 11956  - [39m13/04/2026, 9:30:59 pm [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+2026-04-13 21:30:59: [32m[Nest] 11956  - [39m13/04/2026, 9:30:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +9ms[39m
+2026-04-13 21:30:59: [32m[Nest] 11956  - [39m13/04/2026, 9:30:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-13 21:30:59: [32m[Nest] 11956  - [39m13/04/2026, 9:30:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-13 21:30:59: [32m[Nest] 11956  - [39m13/04/2026, 9:30:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule_1 dependencies initialized[39m[38;5;3m +1ms[39m
+2026-04-13 21:30:59: [32m[Nest] 11956  - [39m13/04/2026, 9:30:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-13 21:30:59: [32m[Nest] 11956  - [39m13/04/2026, 9:30:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScheduleModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-13 21:30:59: [32m[Nest] 11956  - [39m13/04/2026, 9:30:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-13 21:30:59: [32m[Nest] 11956  - [39m13/04/2026, 9:30:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-13 21:30:59: [32m[Nest] 11956  - [39m13/04/2026, 9:30:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-13 21:30:59: [32m[Nest] 11956  - [39m13/04/2026, 9:30:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +3ms[39m
+2026-04-13 21:30:59: [32m[Nest] 11956  - [39m13/04/2026, 9:30:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-13 21:30:59: [32m[Nest] 11956  - [39m13/04/2026, 9:30:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullMQModule2 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-13 21:30:59: [32m[Nest] 11956  - [39m13/04/2026, 9:30:59 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +2ms[39m
+2026-04-13 21:30:59: [32m[Nest] 11956  - [39m13/04/2026, 9:30:59 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +1ms[39m
+2026-04-13 21:30:59: [32m[Nest] 11956  - [39m13/04/2026, 9:30:59 pm [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +5ms[39m
+2026-04-13 21:30:59: Worker Server is running!
+2026-04-13 21:39:44: [32m[Nest] 13057  - [39m13/04/2026, 9:39:44 pm [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+2026-04-13 21:39:44: [32m[Nest] 13057  - [39m13/04/2026, 9:39:44 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +10ms[39m
+2026-04-13 21:39:44: [32m[Nest] 13057  - [39m13/04/2026, 9:39:44 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-13 21:39:44: [32m[Nest] 13057  - [39m13/04/2026, 9:39:44 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-13 21:39:44: [32m[Nest] 13057  - [39m13/04/2026, 9:39:44 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule_1 dependencies initialized[39m[38;5;3m +1ms[39m
+2026-04-13 21:39:44: [32m[Nest] 13057  - [39m13/04/2026, 9:39:44 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-13 21:39:44: [32m[Nest] 13057  - [39m13/04/2026, 9:39:44 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScheduleModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-13 21:39:44: [32m[Nest] 13057  - [39m13/04/2026, 9:39:44 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-13 21:39:44: [32m[Nest] 13057  - [39m13/04/2026, 9:39:44 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-13 21:39:44: [32m[Nest] 13057  - [39m13/04/2026, 9:39:44 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-13 21:39:44: [32m[Nest] 13057  - [39m13/04/2026, 9:39:44 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +2ms[39m
+2026-04-13 21:39:44: [32m[Nest] 13057  - [39m13/04/2026, 9:39:44 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-13 21:39:44: [32m[Nest] 13057  - [39m13/04/2026, 9:39:44 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullMQModule2 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-13 21:39:44: [32m[Nest] 13057  - [39m13/04/2026, 9:39:44 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +3ms[39m
+2026-04-13 21:39:44: [32m[Nest] 13057  - [39m13/04/2026, 9:39:44 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +1ms[39m
+2026-04-13 21:39:44: [32m[Nest] 13057  - [39m13/04/2026, 9:39:44 pm [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +5ms[39m
+2026-04-13 21:39:44: Worker Server is running!
+2026-04-13 22:27:49: [32m[Nest] 13057  - [39m13/04/2026, 10:27:49 pm [32m    LOG[39m [38;5;3m[VideoConsumerService2] [39m[32mJob id: 2, name: process-video starts in queue video-processing on 2026-04-13T16:57:49.640Z.[39m
+2026-04-13 22:27:49: [32m[Nest] 13057  - [39m13/04/2026, 10:27:49 pm [32m    LOG[39m [38;5;3m[VideoConsumerService2] [39m[32mProcessing video job: process-video for lesson 62[39m
+2026-04-13 22:27:49: [32m[Nest] 13057  - [39m13/04/2026, 10:27:49 pm [32m    LOG[39m [38;5;3m[VideoConsumerService2] [39m[32mVideo processed — lesson: "Introduction to Robotic Process Automation and UiPath Studio", course: "Comprehensive UiPath RPA: From Beginner to Job-Ready Expert", file: Screencast from 18-03-26 05:56:43 PM IST.webm (0.90 MB)[39m
+2026-04-13 22:27:49: [32m[Nest] 13057  - [39m13/04/2026, 10:27:49 pm [32m    LOG[39m [38;5;3m[EmailChannel2] [39m[32mSending email to teacher@thinkbloom.dev | subject="✅ Video uploaded — "Introduction to Robotic Process Automation and UiPath Studio" is ready"[39m
+2026-04-13 22:27:49: [95m[Nest] 13057  - [39m13/04/2026, 10:27:49 pm [95m  DEBUG[39m [38;5;3m[EmailChannel2] [39m[95mchecking environment variables... smtp.gmail.com[39m
+2026-04-13 22:27:53: [32m[Nest] 13057  - [39m13/04/2026, 10:27:53 pm [32m    LOG[39m [38;5;3m[EmailChannel2] [39m[32mEmail sent to teacher@thinkbloom.dev[39m
+2026-04-13 22:27:53: [32m[Nest] 13057  - [39m13/04/2026, 10:27:53 pm [32m    LOG[39m [38;5;3m[VideoConsumerService2] [39m[32mVideo upload email sent to teacher: teacher@thinkbloom.dev[39m
+2026-04-13 22:27:53: [32m[Nest] 13057  - [39m13/04/2026, 10:27:53 pm [32m    LOG[39m [38;5;3m[VideoConsumerService2] [39m[32mJob id: 2, name: process-video completed in queue video-processing on 2026-04-13T16:57:53.694Z. Result: undefined[39m
+2026-04-14 11:57:45: [32m[Nest] 44383  - [39m14/04/2026, 11:57:45 am [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+2026-04-14 11:57:45: [32m[Nest] 44383  - [39m14/04/2026, 11:57:45 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +11ms[39m
+2026-04-14 11:57:45: [32m[Nest] 44383  - [39m14/04/2026, 11:57:45 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 11:57:45: [32m[Nest] 44383  - [39m14/04/2026, 11:57:45 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 11:57:45: [32m[Nest] 44383  - [39m14/04/2026, 11:57:45 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 11:57:45: [32m[Nest] 44383  - [39m14/04/2026, 11:57:45 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 11:57:45: [32m[Nest] 44383  - [39m14/04/2026, 11:57:45 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScheduleModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 11:57:45: [32m[Nest] 44383  - [39m14/04/2026, 11:57:45 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +1ms[39m
+2026-04-14 11:57:45: [32m[Nest] 44383  - [39m14/04/2026, 11:57:45 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 11:57:45: [32m[Nest] 44383  - [39m14/04/2026, 11:57:45 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 11:57:45: [32m[Nest] 44383  - [39m14/04/2026, 11:57:45 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +2ms[39m
+2026-04-14 11:57:45: [32m[Nest] 44383  - [39m14/04/2026, 11:57:45 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 11:57:45: [32m[Nest] 44383  - [39m14/04/2026, 11:57:45 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullMQModule2 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 11:57:45: [32m[Nest] 44383  - [39m14/04/2026, 11:57:45 am [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +2ms[39m
+2026-04-14 11:57:45: [32m[Nest] 44383  - [39m14/04/2026, 11:57:45 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +1ms[39m
+2026-04-14 11:57:45: [32m[Nest] 44383  - [39m14/04/2026, 11:57:45 am [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +5ms[39m
+2026-04-14 11:57:45: Worker Server is running!
+2026-04-14 11:58:23: [32m[Nest] 44651  - [39m14/04/2026, 11:58:23 am [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+2026-04-14 11:58:23: [32m[Nest] 44651  - [39m14/04/2026, 11:58:23 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +11ms[39m
+2026-04-14 11:58:23: [32m[Nest] 44651  - [39m14/04/2026, 11:58:23 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 11:58:23: [32m[Nest] 44651  - [39m14/04/2026, 11:58:23 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 11:58:23: [32m[Nest] 44651  - [39m14/04/2026, 11:58:23 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule_1 dependencies initialized[39m[38;5;3m +1ms[39m
+2026-04-14 11:58:23: [32m[Nest] 44651  - [39m14/04/2026, 11:58:23 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 11:58:23: [32m[Nest] 44651  - [39m14/04/2026, 11:58:23 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScheduleModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 11:58:23: [32m[Nest] 44651  - [39m14/04/2026, 11:58:23 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 11:58:23: [32m[Nest] 44651  - [39m14/04/2026, 11:58:23 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 11:58:23: [32m[Nest] 44651  - [39m14/04/2026, 11:58:23 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 11:58:23: [32m[Nest] 44651  - [39m14/04/2026, 11:58:23 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +2ms[39m
+2026-04-14 11:58:23: [32m[Nest] 44651  - [39m14/04/2026, 11:58:23 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 11:58:23: [32m[Nest] 44651  - [39m14/04/2026, 11:58:23 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullMQModule2 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 11:58:23: [32m[Nest] 44651  - [39m14/04/2026, 11:58:23 am [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +2ms[39m
+2026-04-14 11:58:23: [32m[Nest] 44651  - [39m14/04/2026, 11:58:23 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +2ms[39m
+2026-04-14 11:58:23: [32m[Nest] 44651  - [39m14/04/2026, 11:58:23 am [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +5ms[39m
+2026-04-14 11:58:23: Worker Server is running!
+2026-04-14 17:03:19: [32m[Nest] 68287  - [39m14/04/2026, 5:03:19 pm [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+2026-04-14 17:03:19: [32m[Nest] 68287  - [39m14/04/2026, 5:03:19 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +14ms[39m
+2026-04-14 17:03:19: [32m[Nest] 68287  - [39m14/04/2026, 5:03:19 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationModule dependencies initialized[39m[38;5;3m +1ms[39m
+2026-04-14 17:03:19: [32m[Nest] 68287  - [39m14/04/2026, 5:03:19 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 17:03:19: [32m[Nest] 68287  - [39m14/04/2026, 5:03:19 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 17:03:19: [32m[Nest] 68287  - [39m14/04/2026, 5:03:19 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 17:03:19: [32m[Nest] 68287  - [39m14/04/2026, 5:03:19 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScheduleModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 17:03:19: [32m[Nest] 68287  - [39m14/04/2026, 5:03:19 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +1ms[39m
+2026-04-14 17:03:19: [32m[Nest] 68287  - [39m14/04/2026, 5:03:19 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 17:03:19: [32m[Nest] 68287  - [39m14/04/2026, 5:03:19 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 17:03:19: [32m[Nest] 68287  - [39m14/04/2026, 5:03:19 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +2ms[39m
+2026-04-14 17:03:19: [32m[Nest] 68287  - [39m14/04/2026, 5:03:19 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 17:03:19: [32m[Nest] 68287  - [39m14/04/2026, 5:03:19 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullMQModule2 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 17:03:19: [32m[Nest] 68287  - [39m14/04/2026, 5:03:19 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +2ms[39m
+2026-04-14 17:03:19: [32m[Nest] 68287  - [39m14/04/2026, 5:03:19 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +2ms[39m
+2026-04-14 17:03:19: [32m[Nest] 68287  - [39m14/04/2026, 5:03:19 pm [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +5ms[39m
+2026-04-14 17:03:19: Worker Server is running!
+2026-04-14 17:07:26: [32m[Nest] 68287  - [39m14/04/2026, 5:07:26 pm [32m    LOG[39m [38;5;3m[NotificationConsumerService2] [39m[32mJob id: 27, name: quiz-completed starts in queue notifications on 2026-04-14T11:37:26.224Z.[39m
+2026-04-14 17:07:26: [32m[Nest] 68287  - [39m14/04/2026, 5:07:26 pm [32m    LOG[39m [38;5;3m[NotificationConsumerService2] [39m[32mProcessing notification job: quiz-completed[39m
+2026-04-14 17:07:26: [32m[Nest] 68287  - [39m14/04/2026, 5:07:26 pm [32m    LOG[39m [38;5;3m[EmailChannel2] [39m[32mSending email to student@thinkbloom.dev | subject="📚 Quiz Result: 0% — Machine Learning Fundamentals"[39m
+2026-04-14 17:07:26: [95m[Nest] 68287  - [39m14/04/2026, 5:07:26 pm [95m  DEBUG[39m [38;5;3m[EmailChannel2] [39m[95mchecking environment variables... smtp.gmail.com[39m
+2026-04-14 17:07:30: [32m[Nest] 68287  - [39m14/04/2026, 5:07:30 pm [32m    LOG[39m [38;5;3m[EmailChannel2] [39m[32mEmail sent to student@thinkbloom.dev[39m
+2026-04-14 17:07:30: [32m[Nest] 68287  - [39m14/04/2026, 5:07:30 pm [32m    LOG[39m [38;5;3m[NotificationConsumerService2] [39m[32mJob id: 27, name: quiz-completed completed in queue notifications on 2026-04-14T11:37:30.703Z. Result: undefined[39m
+2026-04-14 17:07:30: [32m[Nest] 68287  - [39m14/04/2026, 5:07:30 pm [32m    LOG[39m [38;5;3m[NotificationConsumerService2] [39m[32mJob id: 28, name: quiz-attempted-teacher starts in queue notifications on 2026-04-14T11:37:26.234Z.[39m
+2026-04-14 17:07:30: [32m[Nest] 68287  - [39m14/04/2026, 5:07:30 pm [32m    LOG[39m [38;5;3m[NotificationConsumerService2] [39m[32mProcessing notification job: quiz-attempted-teacher[39m
+2026-04-14 17:07:30: [32m[Nest] 68287  - [39m14/04/2026, 5:07:30 pm [32m    LOG[39m [38;5;3m[EmailChannel2] [39m[32mSending email to teacher@thinkbloom.dev | subject="Priya completed a quiz in "Machine Learning Fundamentals""[39m
+2026-04-14 17:07:30: [95m[Nest] 68287  - [39m14/04/2026, 5:07:30 pm [95m  DEBUG[39m [38;5;3m[EmailChannel2] [39m[95mchecking environment variables... smtp.gmail.com[39m
+2026-04-14 17:07:34: [32m[Nest] 68287  - [39m14/04/2026, 5:07:34 pm [32m    LOG[39m [38;5;3m[EmailChannel2] [39m[32mEmail sent to teacher@thinkbloom.dev[39m
+2026-04-14 17:07:34: [32m[Nest] 68287  - [39m14/04/2026, 5:07:34 pm [32m    LOG[39m [38;5;3m[NotificationConsumerService2] [39m[32mJob id: 28, name: quiz-attempted-teacher completed in queue notifications on 2026-04-14T11:37:34.789Z. Result: undefined[39m
+2026-04-14 21:06:59: [32m[Nest] 974  - [39m14/04/2026, 9:06:59 pm [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+2026-04-14 21:06:59: [32m[Nest] 974  - [39m14/04/2026, 9:06:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +13ms[39m
+2026-04-14 21:06:59: [32m[Nest] 974  - [39m14/04/2026, 9:06:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 21:06:59: [32m[Nest] 974  - [39m14/04/2026, 9:06:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 21:06:59: [32m[Nest] 974  - [39m14/04/2026, 9:06:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule_1 dependencies initialized[39m[38;5;3m +1ms[39m
+2026-04-14 21:06:59: [32m[Nest] 974  - [39m14/04/2026, 9:06:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 21:06:59: [32m[Nest] 974  - [39m14/04/2026, 9:06:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScheduleModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 21:06:59: [32m[Nest] 974  - [39m14/04/2026, 9:06:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 21:06:59: [32m[Nest] 974  - [39m14/04/2026, 9:06:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 21:06:59: [32m[Nest] 974  - [39m14/04/2026, 9:06:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 21:06:59: [32m[Nest] 974  - [39m14/04/2026, 9:06:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +2ms[39m
+2026-04-14 21:06:59: [32m[Nest] 974  - [39m14/04/2026, 9:06:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 21:06:59: [32m[Nest] 974  - [39m14/04/2026, 9:06:59 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullMQModule2 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-14 21:06:59: [32m[Nest] 974  - [39m14/04/2026, 9:06:59 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +2ms[39m
+2026-04-14 21:06:59: [32m[Nest] 974  - [39m14/04/2026, 9:06:59 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +1ms[39m
+2026-04-14 21:06:59: [32m[Nest] 974  - [39m14/04/2026, 9:06:59 pm [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +7ms[39m
+2026-04-14 21:06:59: Worker Server is running!
+2026-04-15 10:49:17: [32m[Nest] 980  - [39m15/04/2026, 10:49:17 am [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+2026-04-15 10:49:17: [32m[Nest] 980  - [39m15/04/2026, 10:49:17 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +9ms[39m
+2026-04-15 10:49:17: [32m[Nest] 980  - [39m15/04/2026, 10:49:17 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-15 10:49:17: [32m[Nest] 980  - [39m15/04/2026, 10:49:17 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-15 10:49:17: [32m[Nest] 980  - [39m15/04/2026, 10:49:17 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-15 10:49:17: [32m[Nest] 980  - [39m15/04/2026, 10:49:17 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule_1 dependencies initialized[39m[38;5;3m +1ms[39m
+2026-04-15 10:49:17: [32m[Nest] 980  - [39m15/04/2026, 10:49:17 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScheduleModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-15 10:49:17: [32m[Nest] 980  - [39m15/04/2026, 10:49:17 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-15 10:49:17: [32m[Nest] 980  - [39m15/04/2026, 10:49:17 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-15 10:49:17: [32m[Nest] 980  - [39m15/04/2026, 10:49:17 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-15 10:49:17: [32m[Nest] 980  - [39m15/04/2026, 10:49:17 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +2ms[39m
+2026-04-15 10:49:17: [32m[Nest] 980  - [39m15/04/2026, 10:49:17 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-15 10:49:17: [32m[Nest] 980  - [39m15/04/2026, 10:49:17 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullMQModule2 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-15 10:49:17: [32m[Nest] 980  - [39m15/04/2026, 10:49:17 am [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +2ms[39m
+2026-04-15 10:49:17: [32m[Nest] 980  - [39m15/04/2026, 10:49:17 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +1ms[39m
+2026-04-15 10:49:17: [32m[Nest] 980  - [39m15/04/2026, 10:49:17 am [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +5ms[39m
+2026-04-15 10:49:17: Worker Server is running!
+2026-04-16 08:42:05: [32m[Nest] 967  - [39m16/04/2026, 8:42:05 am [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+2026-04-16 08:42:05: [32m[Nest] 967  - [39m16/04/2026, 8:42:05 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +9ms[39m
+2026-04-16 08:42:05: [32m[Nest] 967  - [39m16/04/2026, 8:42:05 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-16 08:42:05: [32m[Nest] 967  - [39m16/04/2026, 8:42:05 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-16 08:42:05: [32m[Nest] 967  - [39m16/04/2026, 8:42:05 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-16 08:42:05: [32m[Nest] 967  - [39m16/04/2026, 8:42:05 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-16 08:42:05: [32m[Nest] 967  - [39m16/04/2026, 8:42:05 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScheduleModule_1 dependencies initialized[39m[38;5;3m +1ms[39m
+2026-04-16 08:42:05: [32m[Nest] 967  - [39m16/04/2026, 8:42:05 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-16 08:42:05: [32m[Nest] 967  - [39m16/04/2026, 8:42:05 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-16 08:42:05: [32m[Nest] 967  - [39m16/04/2026, 8:42:05 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-16 08:42:05: [32m[Nest] 967  - [39m16/04/2026, 8:42:05 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +2ms[39m
+2026-04-16 08:42:05: [32m[Nest] 967  - [39m16/04/2026, 8:42:05 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-16 08:42:05: [32m[Nest] 967  - [39m16/04/2026, 8:42:05 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullMQModule2 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-16 08:42:05: [32m[Nest] 967  - [39m16/04/2026, 8:42:05 am [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +2ms[39m
+2026-04-16 08:42:05: [32m[Nest] 967  - [39m16/04/2026, 8:42:05 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +1ms[39m
+2026-04-16 08:42:05: [32m[Nest] 967  - [39m16/04/2026, 8:42:05 am [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +6ms[39m
+2026-04-16 08:42:05: Worker Server is running!
+2026-04-16 12:24:29: [32m[Nest] 33611  - [39m16/04/2026, 12:24:29 pm [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+2026-04-16 12:24:29: [32m[Nest] 33611  - [39m16/04/2026, 12:24:29 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +26ms[39m
+2026-04-16 12:24:29: [32m[Nest] 33611  - [39m16/04/2026, 12:24:29 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-16 12:24:29: [32m[Nest] 33611  - [39m16/04/2026, 12:24:29 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-16 12:24:29: [32m[Nest] 33611  - [39m16/04/2026, 12:24:29 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule_1 dependencies initialized[39m[38;5;3m +2ms[39m
+2026-04-16 12:24:29: [32m[Nest] 33611  - [39m16/04/2026, 12:24:29 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-16 12:24:29: [32m[Nest] 33611  - [39m16/04/2026, 12:24:29 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScheduleModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-16 12:24:29: [32m[Nest] 33611  - [39m16/04/2026, 12:24:29 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-16 12:24:29: [32m[Nest] 33611  - [39m16/04/2026, 12:24:29 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-16 12:24:29: [32m[Nest] 33611  - [39m16/04/2026, 12:24:29 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +1ms[39m
+2026-04-16 12:24:29: [32m[Nest] 33611  - [39m16/04/2026, 12:24:29 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +5ms[39m
+2026-04-16 12:24:29: [32m[Nest] 33611  - [39m16/04/2026, 12:24:29 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule_1 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-16 12:24:29: [32m[Nest] 33611  - [39m16/04/2026, 12:24:29 pm [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullMQModule2 dependencies initialized[39m[38;5;3m +0ms[39m
+2026-04-16 12:24:29: [32m[Nest] 33611  - [39m16/04/2026, 12:24:29 pm [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +6ms[39m
+2026-04-16 12:24:29: [32m[Nest] 33611  - [39m16/04/2026, 12:24:29 pm [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +3ms[39m
+2026-04-16 12:24:29: [32m[Nest] 33611  - [39m16/04/2026, 12:24:29 pm [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +13ms[39m
+2026-04-16 12:24:29: Worker Server is running!

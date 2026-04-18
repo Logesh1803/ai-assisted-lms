@@ -11,7 +11,7 @@ export class GeminiService {
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY') as string;
     const genAI = new GoogleGenerativeAI(apiKey);
-    this.model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    this.model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
   }
 
   private parseJson<T>(text: string): T {
@@ -427,10 +427,9 @@ Respond ONLY in this exact JSON format:
         batch.map((lesson) =>
           this.generateLessonContent(lesson.title, lesson.description, structure.title).then(
             (content) => {
-              this.logger.log(`  ✓ Lesson ${lesson.order}: "${lesson.title}"`);
-              return { ...lesson, content };
-            },
-          ),
+            this.logger.log(`  ✓ Lesson ${lesson.order}: "${lesson.title}"`);
+            return { ...lesson, content };
+          }),
         ),
       );
       batchResults.forEach((r, j) => { lessonsWithContent[i + j] = r; });

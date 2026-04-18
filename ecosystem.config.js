@@ -1,0 +1,60 @@
+module.exports = {
+  apps: [
+    {
+      name: "lms-api",
+      cwd: "./apps/api",
+      script: "dist/main.js",
+      interpreter: "node",
+      instances: 1,
+      exec_mode: "fork",
+      env: {
+        NODE_ENV: "production",
+        PORT: 8080,
+      },
+      // restart on crash, not on memory limit
+      max_restarts: 10,
+      restart_delay: 3000,
+      watch: false,
+      log_date_format: "YYYY-MM-DD HH:mm:ss",
+      error_file: "logs/api-error.log",
+      out_file: "logs/api-out.log",
+    },
+    {
+      name: "lms-web",
+      cwd: "./apps/web",
+      // Next.js standalone server (generated after `next build`)
+      script: ".next/standalone/apps/web/server.js",
+      interpreter: "node",
+      instances: 1,
+      exec_mode: "fork",
+      env: {
+        NODE_ENV: "production",
+        PORT: 3000,
+        HOSTNAME: "0.0.0.0",
+      },
+      max_restarts: 10,
+      restart_delay: 3000,
+      watch: false,
+      log_date_format: "YYYY-MM-DD HH:mm:ss",
+      error_file: "logs/web-error.log",
+      out_file: "logs/web-out.log",
+    },
+    {
+      name: "lms-worker",
+      cwd: "./apps/worker",
+      script: "dist/main.js",
+      interpreter: "node",
+      instances: 1,
+      exec_mode: "fork",
+      env: {
+        NODE_ENV: "production",
+      },
+      max_restarts: 10,
+      restart_delay: 3000,
+      watch: false,
+      log_date_format: "YYYY-MM-DD HH:mm:ss",
+      error_file: "logs/worker-error.log",
+      out_file: "logs/worker-out.log",
+    },
+  ],
+};

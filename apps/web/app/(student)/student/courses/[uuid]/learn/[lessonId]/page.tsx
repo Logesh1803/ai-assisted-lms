@@ -272,7 +272,7 @@ export default function LessonLearnPage({
       </div>
 
       {/* Video Player — only shown when the lesson has an uploaded video */}
-      {lessonData.videoUrl && (
+      {lessonData.video_url && (
         <div className="rounded-xl overflow-hidden bg-black aspect-video">
           <video
             ref={videoRef}
