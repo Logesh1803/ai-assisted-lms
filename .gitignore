@@ -38,4 +38,5 @@ playwright.config.ts
 **/screenshots
 **/.auth
 **/.claude
+**/logs
 
