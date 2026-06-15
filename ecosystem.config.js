@@ -9,7 +9,7 @@ module.exports = {
       exec_mode: "fork",
       env: {
         NODE_ENV: "production",
-        PORT: 8080,
+        PORT: 3005,
       },
       // restart on crash, not on memory limit
       max_restarts: 10,
@@ -29,7 +29,7 @@ module.exports = {
       exec_mode: "fork",
       env: {
         NODE_ENV: "production",
-        PORT: 3000,
+        PORT: 3002,
         HOSTNAME: "0.0.0.0",
       },
       max_restarts: 10,
@@ -48,6 +48,7 @@ module.exports = {
       exec_mode: "fork",
       env: {
         NODE_ENV: "production",
+        PORT: 3006,
       },
       max_restarts: 10,
       restart_delay: 3000,

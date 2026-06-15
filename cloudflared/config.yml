@@ -1,6 +1,5 @@
-# Replace <TUNNEL_ID> with the ID from: cloudflared tunnel create thinkblooms
-tunnel: <TUNNEL_ID>
-credentials-file: /home/logesh/.cloudflared/<TUNNEL_ID>.json
+tunnel: a28f1256-d7d8-417f-9d4c-fe7090a715be
+credentials-file: /home/loki/.cloudflared/a28f1256-d7d8-417f-9d4c-fe7090a715be.json
 
 ingress:
   # API subdomain → NestJS (via Nginx)

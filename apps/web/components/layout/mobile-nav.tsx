@@ -7,7 +7,6 @@ import type { NavItem } from "@/config/nav";
 
 type MobileNavProps = {
   navItems: NavItem[];
-  /** Maximum items to show in the bottom bar (default 5) */
   maxItems?: number;
 };
 
@@ -16,8 +15,15 @@ export function MobileNav({ navItems, maxItems = 5 }: MobileNavProps) {
   const items = navItems.slice(0, maxItems);
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-40 lg:hidden bg-background/95 backdrop-blur border-t">
-      {/* safe-area-inset-bottom for notch/home-indicator phones */}
+    <nav
+      className="fixed bottom-0 inset-x-0 z-40 lg:hidden"
+      style={{
+        background: "rgba(245,243,255,0.88)",
+        backdropFilter: "blur(16px) saturate(180%)",
+        WebkitBackdropFilter: "blur(16px) saturate(180%)",
+        borderTop: "1px solid var(--border)",
+      }}
+    >
       <div
         className="flex items-stretch"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
@@ -32,19 +38,32 @@ export function MobileNav({ navItems, maxItems = 5 }: MobileNavProps) {
               key={item.url}
               href={item.url}
               className={cn(
-                "flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition-colors",
+                "flex flex-1 flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-semibold tracking-wide transition-all duration-150",
                 isActive
-                  ? "text-primary"
+                  ? "text-[--primary]"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Icon
-                className={cn(
-                  "h-5 w-5 shrink-0 transition-transform",
-                  isActive && "scale-110"
+              <div className="relative flex items-center justify-center">
+                {/* Active glow dot */}
+                {isActive && (
+                  <span
+                    className="absolute inset-0 rounded-lg blur-sm opacity-30"
+                    style={{ background: "var(--gradient-brand)", transform: "scale(1.4)" }}
+                  />
                 )}
-              />
-              <span className="leading-tight">{item.title}</span>
+                <Icon
+                  className={cn(
+                    "relative h-5 w-5 shrink-0 transition-all duration-150",
+                    isActive && "scale-110"
+                  )}
+                  style={isActive ? { color: "var(--primary)" } : undefined}
+                />
+              </div>
+              <span className={cn("leading-tight", isActive && "font-bold")}
+                style={isActive ? { color: "var(--primary)" } : undefined}>
+                {item.title}
+              </span>
             </Link>
           );
         })}

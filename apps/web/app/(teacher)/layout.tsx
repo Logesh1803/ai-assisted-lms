@@ -28,7 +28,10 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   if (!_hasHydrated || !isAuthenticated || user?.role !== "TEACHER") {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
+        <div
+          className="h-7 w-7 animate-spin rounded-full border-2 border-t-transparent"
+          style={{ borderColor: "var(--primary)", borderTopColor: "transparent" }}
+        />
       </div>
     );
   }
@@ -36,14 +39,15 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* ── Desktop Sidebar ─────────────────────────────────────── */}
-      <aside className="hidden lg:flex lg:flex-col w-60 border-r shrink-0 h-full overflow-y-auto">
+      <aside className="hidden lg:flex lg:flex-col w-60 shrink-0 h-full overflow-y-auto shadow-xl">
         <AppSidebar navItems={teacherNavItems} role="TEACHER" />
       </aside>
 
       {/* ── Mobile: backdrop overlay ─────────────────────────────── */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          className="fixed inset-0 z-40 lg:hidden backdrop-blur-sm"
+          style={{ background: "rgba(13,11,26,0.60)" }}
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -51,12 +55,22 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       {/* ── Mobile: slide-in sidebar ─────────────────────────────── */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex flex-col w-60 border-r bg-background transform transition-transform duration-200 ease-in-out lg:hidden",
+          "fixed inset-y-0 left-0 z-50 flex flex-col w-60 transform transition-transform duration-200 ease-out lg:hidden shadow-xl",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
+        style={{ background: "var(--sidebar)" }}
       >
-        <div className="flex items-center justify-end px-3 py-3 border-b">
-          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)}>
+        <div
+          className="flex items-center justify-end px-3 py-3"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+        >
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="rounded-lg"
+            style={{ color: "rgba(255,255,255,0.60)" }}
+            onClick={() => setSidebarOpen(false)}
+          >
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -69,12 +83,20 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
 
       {/* ── Main area ───────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Topbar: hamburger (mobile) + breadcrumbs */}
-        <header className="sticky top-0 z-30 flex items-center h-12 px-4 border-b bg-background/95 backdrop-blur gap-3">
+        {/* Topbar */}
+        <header
+          className="sticky top-0 z-30 flex items-center h-14 px-4 gap-3"
+          style={{
+            background: "rgba(245,243,255,0.85)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
+            borderBottom: "1px solid var(--border)",
+          }}
+        >
           <Button
             variant="ghost"
-            size="icon"
-            className="lg:hidden h-7 w-7"
+            size="icon-sm"
+            className="lg:hidden rounded-lg"
             onClick={() => setSidebarOpen(true)}
           >
             <Menu className="h-4 w-4" />
@@ -85,8 +107,8 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           </div>
         </header>
 
-        {/* Page content — extra bottom padding on mobile for the bottom nav */}
-        <main className="flex-1 overflow-y-auto p-5 pb-20 md:p-7 md:pb-7 lg:p-8 lg:pb-8">
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto p-5 pb-24 md:p-7 md:pb-7 lg:p-8 lg:pb-8">
           {children}
         </main>
       </div>

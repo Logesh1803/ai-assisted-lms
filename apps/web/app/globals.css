@@ -27,91 +27,175 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-jakarta);
+  --font-mono: var(--font-jetbrains);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   ThinkBloom Design System — Clean, minimal, Udemy/Guvi-style
-   Single primary color + neutral gray scale. No color noise.
+   ThinkBloom Design System v2 — AI-native, glass-forward, vibrant
+   Violet-purple brand gradient + cyan AI accent. Light mode first.
    ───────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --radius: 0.5rem;
+  /* ── Radius scale ─────────────────────────────────────────────────────── */
+  --radius: 0.75rem;    /* base = 12px */
+  --radius-xs: 0.25rem; /* 4px  — tags, chips   */
+  --radius-sm: 0.5rem;  /* 8px  — inputs, sm btn */
+  --radius-md: 0.75rem; /* 12px — cards         */
+  --radius-lg: 1rem;    /* 16px — modals        */
+  --radius-xl: 1.25rem; /* 20px — feature blocks */
+  --radius-2xl: 1.5rem; /* 24px — hero sections  */
 
-  /* Neutral base */
-  --background:           oklch(1 0 0);          /* pure white */
-  --foreground:           oklch(0.13 0 0);        /* #111827  */
+  /* ── Base surfaces ────────────────────────────────────────────────────── */
+  --background:           #F5F3FF;   /* near-white with violet ghost tint */
+  --foreground:           #1A1040;   /* deep violet-black for text        */
 
-  --card:                 oklch(1 0 0);
-  --card-foreground:      oklch(0.13 0 0);
+  --card:                 #FFFFFF;
+  --card-foreground:      #1A1040;
 
-  --popover:              oklch(1 0 0);
-  --popover-foreground:   oklch(0.13 0 0);
+  --popover:              #FFFFFF;
+  --popover-foreground:   #1A1040;
 
-  /* Primary — Indigo (one brand color, used only for CTAs & active states) */
-  --primary:              oklch(0.47 0.20 264);   /* #4338ca  */
-  --primary-foreground:   oklch(1 0 0);           /* white    */
+  /* ── Brand — Violet-Indigo gradient ──────────────────────────────────── */
+  --primary:              #7C3AED;   /* violet-600                        */
+  --primary-light:        #8B5CF6;   /* violet-500 — hover               */
+  --primary-foreground:   #FFFFFF;
 
-  /* Grays — used for everything else */
-  --secondary:            oklch(0.96 0 0);        /* gray-100 */
-  --secondary-foreground: oklch(0.20 0 0);        /* gray-800 */
+  /* ── AI accent — Cyan ────────────────────────────────────────────────── */
+  --ai:                   #06B6D4;   /* cyan-500                          */
+  --ai-foreground:        #FFFFFF;
 
-  --muted:                oklch(0.97 0 0);        /* gray-50  */
-  --muted-foreground:     oklch(0.44 0 0);        /* gray-500 */
+  /* ── Neutrals ────────────────────────────────────────────────────────── */
+  --secondary:            #EDE9FE;   /* violet-100                        */
+  --secondary-foreground: #5B21B6;   /* violet-700                        */
 
-  --accent:               oklch(0.95 0 0);        /* gray-100 */
-  --accent-foreground:    oklch(0.20 0 0);
+  --muted:                #F5F3FF;   /* same as bg — recessed areas       */
+  --muted-foreground:     #6B7280;   /* gray-500                          */
 
-  --destructive:          oklch(0.577 0.245 27);  /* red      */
-  --destructive-foreground: oklch(1 0 0);
+  --accent:               #EDE9FE;
+  --accent-foreground:    #5B21B6;
 
-  --border:               oklch(0.90 0 0);        /* gray-200 */
-  --input:                oklch(0.90 0 0);
-  --ring:                 oklch(0.47 0.20 264);   /* same as primary */
+  /* ── Status ──────────────────────────────────────────────────────────── */
+  --destructive:          #EF4444;
+  --destructive-foreground: #FFFFFF;
 
-  --sidebar:              oklch(0.98 0 0);        /* near-white */
-  --sidebar-foreground:   oklch(0.13 0 0);
+  --success:              #10B981;
+  --success-foreground:   #FFFFFF;
 
-  /* Chat — minimal, neutral tones */
-  --chat-bg:              #f3f4f6;                /* gray-100 */
-  --chat-user-bg:         #e0e7ff;                /* indigo-100 */
+  --warning:              #F59E0B;
+  --warning-foreground:   #FFFFFF;
+
+  /* ── Borders & inputs ────────────────────────────────────────────────── */
+  --border:               rgba(124, 58, 237, 0.12);
+  --border-strong:        rgba(124, 58, 237, 0.25);
+  --input:                rgba(124, 58, 237, 0.10);
+  --ring:                 #7C3AED;
+
+  /* ── Sidebar — dark by default even in light mode ────────────────────── */
+  --sidebar:              #13102A;
+  --sidebar-foreground:   rgba(255, 255, 255, 0.85);
+  --sidebar-border:       rgba(255, 255, 255, 0.06);
+  --sidebar-accent:       rgba(124, 58, 237, 0.30);
+  --sidebar-accent-foreground: #FFFFFF;
+
+  /* ── Gradients (as CSS vars for reuse) ───────────────────────────────── */
+  --gradient-brand:       linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%);
+  --gradient-brand-soft:  linear-gradient(135deg, #EDE9FE 0%, #E0E7FF 100%);
+  --gradient-ai:          linear-gradient(135deg, #06B6D4 0%, #7C3AED 100%);
+  --gradient-warm:        linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
+  --gradient-cool:        linear-gradient(135deg, #10B981 0%, #06B6D4 100%);
+  --gradient-purple:      linear-gradient(135deg, #A855F7 0%, #7C3AED 100%);
+
+  /* ── Shadows ─────────────────────────────────────────────────────────── */
+  --shadow-sm:  0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md:  0 4px 16px rgba(124, 58, 237, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-lg:  0 8px 32px rgba(124, 58, 237, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-xl:  0 16px 48px rgba(124, 58, 237, 0.16), 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-glow:    0 0 24px rgba(124, 58, 237, 0.35);
+  --shadow-glow-sm: 0 0 12px rgba(124, 58, 237, 0.25);
+  --shadow-ai:      0 0 24px rgba(6, 182, 212, 0.30);
+
+  /* ── Glass layers ────────────────────────────────────────────────────── */
+  --glass-1-bg:     rgba(255, 255, 255, 0.60);
+  --glass-1-border: rgba(255, 255, 255, 0.70);
+  --glass-2-bg:     rgba(255, 255, 255, 0.80);
+  --glass-2-border: rgba(124, 58, 237, 0.12);
+
+  /* ── Chat ─────────────────────────────────────────────────────────────── */
+  --chat-bg:        #F5F3FF;
+  --chat-user-bg:   #7C3AED;
+  --chat-ai-bg:     #FFFFFF;
+  --chat-ai-border: rgba(6, 182, 212, 0.20);
 }
 
+/* ── Dark mode ───────────────────────────────────────────────────────────── */
+
 .dark {
-  --background:           oklch(0.13 0 0);
-  --foreground:           oklch(0.97 0 0);
+  --background:           #0D0B1A;   /* deep violet-black                 */
+  --foreground:           #F0EEFF;   /* near-white with violet cast       */
 
-  --card:                 oklch(0.18 0 0);
-  --card-foreground:      oklch(0.97 0 0);
+  --card:                 #13102A;   /* slightly lighter than bg          */
+  --card-foreground:      #F0EEFF;
 
-  --popover:              oklch(0.18 0 0);
-  --popover-foreground:   oklch(0.97 0 0);
+  --popover:              #1A1640;
+  --popover-foreground:   #F0EEFF;
 
-  --primary:              oklch(0.68 0.16 264);   /* lighter indigo for dark */
-  --primary-foreground:   oklch(0.13 0 0);
+  --primary:              #A78BFA;   /* violet-400 — brighter for dark    */
+  --primary-light:        #C4B5FD;
+  --primary-foreground:   #13102A;
 
-  --secondary:            oklch(0.22 0 0);
-  --secondary-foreground: oklch(0.97 0 0);
+  --ai:                   #22D3EE;   /* cyan-400                          */
+  --ai-foreground:        #0D0B1A;
 
-  --muted:                oklch(0.22 0 0);
-  --muted-foreground:     oklch(0.55 0 0);
+  --secondary:            #1E1A3A;
+  --secondary-foreground: #C4B5FD;
 
-  --accent:               oklch(0.25 0 0);
-  --accent-foreground:    oklch(0.97 0 0);
+  --muted:                #1A1640;
+  --muted-foreground:     #9CA3AF;
 
-  --destructive:          oklch(0.65 0.22 27);
-  --destructive-foreground: oklch(0.97 0 0);
+  --accent:               #1E1A3A;
+  --accent-foreground:    #C4B5FD;
 
-  --border:               oklch(1 0 0 / 10%);
-  --input:                oklch(1 0 0 / 12%);
-  --ring:                 oklch(0.68 0.16 264);
+  --destructive:          #F87171;
+  --destructive-foreground: #1A0000;
 
-  --sidebar:              oklch(0.16 0 0);
-  --sidebar-foreground:   oklch(0.97 0 0);
+  --success:              #34D399;
+  --success-foreground:   #022C22;
 
-  --chat-bg:              #1f2937;                /* gray-800  */
-  --chat-user-bg:         #312e81;                /* indigo-900 */
+  --warning:              #FCD34D;
+  --warning-foreground:   #1A0F00;
+
+  --border:               rgba(255, 255, 255, 0.07);
+  --border-strong:        rgba(167, 139, 250, 0.30);
+  --input:                rgba(255, 255, 255, 0.08);
+  --ring:                 #A78BFA;
+
+  --sidebar:              #0A0817;
+  --sidebar-foreground:   rgba(255, 255, 255, 0.80);
+  --sidebar-border:       rgba(255, 255, 255, 0.04);
+  --sidebar-accent:       rgba(167, 139, 250, 0.20);
+  --sidebar-accent-foreground: #F0EEFF;
+
+  --gradient-brand:       linear-gradient(135deg, #A78BFA 0%, #818CF8 100%);
+  --gradient-brand-soft:  linear-gradient(135deg, rgba(167,139,250,0.15) 0%, rgba(129,140,248,0.10) 100%);
+  --gradient-ai:          linear-gradient(135deg, #22D3EE 0%, #A78BFA 100%);
+
+  --shadow-md:  0 4px 16px rgba(0, 0, 0, 0.30), 0 1px 3px rgba(0, 0, 0, 0.20);
+  --shadow-lg:  0 8px 32px rgba(0, 0, 0, 0.40), 0 2px 8px rgba(0, 0, 0, 0.20);
+  --shadow-glow:    0 0 24px rgba(167, 139, 250, 0.40);
+  --shadow-glow-sm: 0 0 12px rgba(167, 139, 250, 0.30);
+  --shadow-ai:      0 0 24px rgba(34, 211, 238, 0.30);
+
+  --glass-1-bg:     rgba(255, 255, 255, 0.04);
+  --glass-1-border: rgba(255, 255, 255, 0.06);
+  --glass-2-bg:     rgba(255, 255, 255, 0.06);
+  --glass-2-border: rgba(167, 139, 250, 0.15);
+
+  --chat-bg:        #0A0817;
+  --chat-user-bg:   #7C3AED;
+  --chat-ai-bg:     #1A1640;
+  --chat-ai-border: rgba(34, 211, 238, 0.20);
 }
 
 /* ── Base reset ──────────────────────────────────────────────────────────── */
@@ -124,33 +208,41 @@
 html {
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
-  /* prevent content shift on scrollbar appear (desktop) */
   scrollbar-gutter: stable;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
+  font-family: var(--font-sans, 'Inter', system-ui, sans-serif);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-  /* Safe area for PWA + notch phones */
   padding-bottom: env(safe-area-inset-bottom);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── Scrollbar — subtle, neutral ─────────────────────────────────────────── */
+/* ── Display headings use Plus Jakarta Sans ──────────────────────────────── */
+
+h1, h2, h3, h4, h5, h6, .font-display {
+  font-family: var(--font-display, var(--font-sans, 'Inter', sans-serif));
+  letter-spacing: -0.025em;
+}
+
+/* ── Scrollbar — subtle, brand-tinted ───────────────────────────────────── */
 
 ::-webkit-scrollbar              { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track        { background: transparent; }
-::-webkit-scrollbar-thumb        { background: oklch(0.80 0 0); border-radius: 9999px; }
-::-webkit-scrollbar-thumb:hover  { background: oklch(0.65 0 0); }
-.dark ::-webkit-scrollbar-thumb       { background: oklch(0.35 0 0); }
-.dark ::-webkit-scrollbar-thumb:hover { background: oklch(0.45 0 0); }
+::-webkit-scrollbar-thumb        { background: rgba(124,58,237,0.25); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover  { background: rgba(124,58,237,0.45); }
+.dark ::-webkit-scrollbar-thumb       { background: rgba(167,139,250,0.20); }
+.dark ::-webkit-scrollbar-thumb:hover { background: rgba(167,139,250,0.40); }
 
-/* ── Smooth transitions ──────────────────────────────────────────────────── */
+/* ── Transitions — smooth, purposeful ───────────────────────────────────── */
 
 button, a, [role="button"] {
-  transition-property: color, background-color, border-color, box-shadow, opacity;
-  transition-duration: 120ms;
-  transition-timing-function: ease;
+  transition-property: color, background-color, border-color, box-shadow, opacity, transform, filter;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ── Focus ring — accessible, on-brand ───────────────────────────────────── */
@@ -159,4 +251,147 @@ button, a, [role="button"] {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* ── Utility classes — glass surfaces ────────────────────────────────────── */
+
+.glass-1 {
+  background: var(--glass-1-bg);
+  backdrop-filter: blur(8px) saturate(150%);
+  -webkit-backdrop-filter: blur(8px) saturate(150%);
+  border: 1px solid var(--glass-1-border);
+}
+
+.glass-2 {
+  background: var(--glass-2-bg);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid var(--glass-2-border);
+  box-shadow: var(--shadow-md);
+}
+
+/* ── Gradient text ───────────────────────────────────────────────────────── */
+
+.gradient-text {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-ai {
+  background: var(--gradient-ai);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Gradient backgrounds (utility) ─────────────────────────────────────── */
+
+.bg-gradient-brand { background: var(--gradient-brand); }
+.bg-gradient-ai    { background: var(--gradient-ai); }
+.bg-gradient-warm  { background: var(--gradient-warm); }
+.bg-gradient-cool  { background: var(--gradient-cool); }
+
+/* ── Glow utilities ──────────────────────────────────────────────────────── */
+
+.shadow-glow    { box-shadow: var(--shadow-glow); }
+.shadow-glow-sm { box-shadow: var(--shadow-glow-sm); }
+.shadow-ai      { box-shadow: var(--shadow-ai); }
+
+/* ── Card hover lift ─────────────────────────────────────────────────────── */
+
+.card-hover {
+  transition: box-shadow 200ms ease, transform 200ms ease;
+}
+.card-hover:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+/* ── Shimmer loading animation ───────────────────────────────────────────── */
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(124,58,237,0.05) 25%,
+    rgba(124,58,237,0.12) 50%,
+    rgba(124,58,237,0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s linear infinite;
+}
+
+/* ── AI pulse animation ──────────────────────────────────────────────────── */
+
+@keyframes ai-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(6,182,212,0.40); }
+  50%       { box-shadow: 0 0 0 8px rgba(6,182,212,0); }
+}
+
+.ai-pulse {
+  animation: ai-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ── Dot bounce (AI typing indicator) ───────────────────────────────────── */
+
+@keyframes dot-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40%            { transform: translateY(-6px); opacity: 1; }
+}
+
+.dot-bounce > span:nth-child(1) { animation: dot-bounce 1.2s ease-in-out infinite; }
+.dot-bounce > span:nth-child(2) { animation: dot-bounce 1.2s ease-in-out 0.2s infinite; }
+.dot-bounce > span:nth-child(3) { animation: dot-bounce 1.2s ease-in-out 0.4s infinite; }
+
+/* ── Page entry animation ─────────────────────────────────────────────────── */
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fade-up-1 { animation-delay: 0ms; }
+.animate-fade-up-2 { animation-delay: 80ms; }
+.animate-fade-up-3 { animation-delay: 160ms; }
+.animate-fade-up-4 { animation-delay: 240ms; }
+.animate-fade-up-5 { animation-delay: 320ms; }
+
+/* ── Sidebar dark surface always, even in light mode ─────────────────────── */
+
+[data-sidebar] {
+  background: var(--sidebar) !important;
+  color: var(--sidebar-foreground) !important;
+}
+
+/* ── Active nav indicator bar ────────────────────────────────────────────── */
+
+.nav-active-bar {
+  position: relative;
+}
+.nav-active-bar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  border-radius: 0 3px 3px 0;
+  background: var(--gradient-brand);
+}
+
+/* ── Progress bar gradient ───────────────────────────────────────────────── */
+
+.progress-gradient [data-state] {
+  background: var(--gradient-brand) !important;
 }

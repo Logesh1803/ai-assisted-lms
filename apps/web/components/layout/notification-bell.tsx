@@ -77,30 +77,42 @@ export function NotificationBell() {
     <div ref={ref} className="relative">
       <Button
         variant="ghost"
-        size="icon"
-        className="relative h-8 w-8"
+        size="icon-sm"
+        className="relative rounded-lg"
         onClick={() => { const next = !open; setOpen(next); if (next) refetch(); }}
         aria-label="Notifications"
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+          <span
+            className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white"
+            style={{ background: "var(--gradient-warm)" }}
+          >
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </Button>
 
       {open && (
-        <div className="absolute right-0 top-10 z-50 w-80 rounded-xl border bg-background shadow-lg">
+        <div
+          className="absolute right-0 top-11 z-50 w-80 rounded-2xl overflow-hidden"
+          style={{
+            background: "var(--card)",
+            border: "1px solid var(--border)",
+            boxShadow: "var(--shadow-xl)",
+          }}
+        >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b">
-            <span className="font-semibold text-sm">Notifications</span>
+          <div
+            className="flex items-center justify-between px-4 py-3"
+            style={{ borderBottom: "1px solid var(--border)" }}
+          >
+            <span className="font-bold text-sm">Notifications</span>
             <div className="flex items-center gap-1">
               {unreadCount > 0 && (
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs gap-1"
+                  variant="ghost" size="sm"
+                  className="h-7 text-xs gap-1 rounded-lg"
                   onClick={() => markAllMutation.mutate()}
                   disabled={markAllMutation.isPending}
                 >
@@ -108,7 +120,7 @@ export function NotificationBell() {
                   Mark all read
                 </Button>
               )}
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setOpen(false)}>
+              <Button variant="ghost" size="icon-sm" className="rounded-lg" onClick={() => setOpen(false)}>
                 <X className="h-3.5 w-3.5" />
               </Button>
             </div>
@@ -127,27 +139,36 @@ export function NotificationBell() {
                   key={notif.uuid}
                   onClick={() => handleClick(notif)}
                   className={cn(
-                    "w-full text-left px-4 py-3 border-b last:border-0 hover:bg-muted/50 transition-colors flex items-start gap-3",
-                    !notif.is_read && "bg-primary/5"
+                    "w-full text-left px-4 py-3 transition-colors flex items-start gap-3",
                   )}
+                  style={{
+                    borderBottom: "1px solid var(--border)",
+                    background: !notif.is_read ? "rgba(124,58,237,0.04)" : undefined,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = "var(--muted)"}
+                  onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.background = !notif.is_read ? "rgba(124,58,237,0.04)" : "transparent"}
                 >
-                  <div className={cn(
-                    "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-                    notif.type === "QUIZ_ATTEMPTED" ? "bg-amber-100 text-amber-600" : "bg-violet-100 text-violet-600"
-                  )}>
+                  <div
+                    className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
+                    style={
+                      notif.type === "QUIZ_ATTEMPTED"
+                        ? { background: "rgba(245,158,11,0.12)", color: "#F59E0B" }
+                        : { background: "rgba(124,58,237,0.10)", color: "var(--primary)" }
+                    }
+                  >
                     {notif.type === "QUIZ_ATTEMPTED"
                       ? <Trophy className="h-4 w-4" />
                       : <BookOpen className="h-4 w-4" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className={cn("text-sm font-medium truncate", !notif.is_read && "text-foreground")}>
+                    <p className={cn("text-sm font-semibold truncate", !notif.is_read && "text-foreground")}>
                       {notif.title}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{notif.message}</p>
                     <p className="text-[11px] text-muted-foreground mt-1">{timeAgo(notif.created_at)}</p>
                   </div>
                   {!notif.is_read && (
-                    <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                    <span className="mt-2 h-2 w-2 shrink-0 rounded-full" style={{ background: "var(--primary)" }} />
                   )}
                 </button>
               ))

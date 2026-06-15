@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { coursesApi } from "@/lib/api";
 import { getFriendlyError } from "@/lib/errors";
 import { formatDate } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -94,95 +93,87 @@ export default function TeacherCoursesPage() {
 
       {isLoading ? (
         <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i}>
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-2">
-                    <Skeleton className="h-5 w-48" />
-                    <Skeleton className="h-4 w-32" />
-                  </div>
-                  <Skeleton className="h-8 w-24" />
-                </div>
-              </CardContent>
-            </Card>
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-20 rounded-2xl" />
           ))}
         </div>
       ) : courses.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-20 text-center">
-            <BookOpen className="h-14 w-14 text-muted-foreground mb-4" />
-            <p className="font-medium text-lg">No courses yet</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Create your first course to get started
-            </p>
-            <Link href="/teacher/courses/create" className="mt-4">
-              <Button>
-                <Plus className="h-4 w-4" />
-                Create Course
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <div
+          className="rounded-2xl flex flex-col items-center justify-center py-20 text-center"
+          style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+        >
+          <div className="h-14 w-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: "var(--secondary)" }}>
+            <BookOpen className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <p className="font-semibold text-lg">No courses yet</p>
+          <p className="text-sm text-muted-foreground mt-1">Create your first course to get started</p>
+          <Link href="/teacher/courses/create" className="mt-5">
+            <Button><Plus className="h-4 w-4" />Create Course</Button>
+          </Link>
+        </div>
       ) : (
-        <div className="border rounded-xl overflow-hidden">
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{ border: "1px solid var(--border)", background: "var(--card)", boxShadow: "var(--shadow-sm)" }}
+        >
           <table className="w-full text-sm">
-            <thead className="border-b bg-muted/50">
-              <tr>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Title</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Lessons</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Students</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Created</th>
-                <th className="py-3 px-4" />
+            <thead>
+              <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--muted)" }}>
+                {["Title", "Status", "Lessons", "Students", "Created", ""].map((h) => (
+                  <th key={h} className="text-left px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide first:rounded-tl-2xl last:rounded-tr-2xl">{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {courses.map((course: any) => (
-                <tr key={course.uuid} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                  <td className="py-3 px-4">
+                <tr
+                  key={course.uuid}
+                  className="transition-colors"
+                  style={{ borderBottom: "1px solid var(--border)" }}
+                  onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = "var(--muted)"}
+                  onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.background = "transparent"}
+                >
+                  <td className="py-3.5 px-5">
                     <div className="flex items-center gap-3">
-                      {course.thumbnail ? (
-                        <div className="h-10 w-16 rounded-md overflow-hidden shrink-0">
+                      <div className="h-11 w-16 rounded-xl overflow-hidden shrink-0">
+                        {course.thumbnail ? (
                           <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
-                        </div>
-                      ) : (
-                        <div className="h-10 w-16 rounded-md shrink-0 bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center">
-                          <BookOpen className="h-4 w-4 text-white/70" />
-                        </div>
-                      )}
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--gradient-brand)" }}>
+                            <BookOpen className="h-4 w-4 text-white/70" />
+                          </div>
+                        )}
+                      </div>
                       <div>
-                        <p className="font-medium">{course.title}</p>
+                        <p className="font-semibold">{course.title}</p>
                         {course.description && (
-                          <p className="text-xs text-muted-foreground line-clamp-1 max-w-xs">
-                            {course.description}
-                          </p>
+                          <p className="text-xs text-muted-foreground line-clamp-1 max-w-xs">{course.description}</p>
                         )}
                       </div>
                     </div>
                   </td>
-                  <td className="py-3 px-4">
-                    <Badge variant={statusVariant(course.status)}>{course.status}</Badge>
+                  <td className="py-3.5 px-5">
+                    <Badge variant={statusVariant(course.status) as any}>{course.status}</Badge>
                   </td>
-                  <td className="py-3 px-4">
-                    <span className="flex items-center gap-1 text-muted-foreground">
+                  <td className="py-3.5 px-5">
+                    <span className="flex items-center gap-1 text-muted-foreground text-xs">
                       <FileText className="h-3.5 w-3.5" />
-                      {course._count?.lessons || 0}
+                      {course._count?.lessons ?? 0}
                     </span>
                   </td>
-                  <td className="py-3 px-4">
-                    <span className="flex items-center gap-1 text-muted-foreground">
+                  <td className="py-3.5 px-5">
+                    <span className="flex items-center gap-1 text-muted-foreground text-xs">
                       <Users className="h-3.5 w-3.5" />
-                      {course._count?.enrollments || 0}
+                      {course._count?.enrollments ?? 0}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-muted-foreground">
+                  <td className="py-3.5 px-5 text-muted-foreground text-xs">
                     {course.createdAt ? formatDate(course.createdAt) : "—"}
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-3.5 px-5">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon-sm" className="rounded-lg">
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>

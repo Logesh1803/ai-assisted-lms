@@ -4,11 +4,124 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth.store";
 import { coursesApi } from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, Users, Plus, Edit, BarChart2, ArrowRight, GraduationCap } from "lucide-react";
+import {
+  BookOpen, Users, Plus, Edit, BarChart2,
+  ArrowRight, GraduationCap, Sparkles,
+} from "lucide-react";
+
+/* ── Stat card ──────────────────────────────────────────────────────────── */
+
+function KpiCard({
+  icon: Icon, label, value, gradient, delay = "0ms",
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string | number;
+  gradient: string;
+  delay?: string;
+}) {
+  return (
+    <div
+      className="animate-fade-up rounded-2xl p-5 flex items-center gap-4"
+      style={{
+        animationDelay: delay,
+        background: "var(--card)",
+        border: "1px solid var(--border)",
+        boxShadow: "var(--shadow-sm)",
+      }}
+    >
+      <div
+        className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0"
+        style={{ background: gradient, boxShadow: "var(--shadow-glow-sm)" }}
+      >
+        <Icon className="h-5 w-5 text-white" />
+      </div>
+      <div>
+        <p className="text-2xl font-extrabold tracking-tight leading-tight">{value}</p>
+        <p className="text-xs text-muted-foreground font-medium mt-0.5">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+/* ── Course row ─────────────────────────────────────────────────────────── */
+
+function CourseRow({ course }: { course: any }) {
+  const statusColor: Record<string, string> = {
+    PUBLISHED: "success",
+    DRAFT:     "secondary",
+    ARCHIVED:  "outline",
+  };
+
+  return (
+    <div
+      className="flex items-center gap-4 p-4 rounded-2xl transition-all duration-150 hover:shadow-[var(--shadow-md)] group"
+      style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+    >
+      {/* Thumbnail */}
+      <div className="h-14 w-20 rounded-xl overflow-hidden shrink-0">
+        {course.thumbnail ? (
+          <img
+            src={course.thumbnail}
+            alt={course.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+          />
+        ) : (
+          <div
+            className="w-full h-full flex items-center justify-center"
+            style={{ background: "var(--gradient-brand)" }}
+          >
+            <BookOpen className="h-5 w-5 text-white/70" />
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <p className="font-semibold text-sm truncate">{course.title}</p>
+          <Badge
+            variant={(statusColor[course.status] ?? "outline") as any}
+            className="text-[10px] shrink-0 px-2 py-0.5"
+          >
+            {course.status}
+          </Badge>
+        </div>
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <BookOpen className="h-3 w-3" />
+            {course._count?.lessons ?? 0} lessons
+          </span>
+          <span className="flex items-center gap-1">
+            <Users className="h-3 w-3" />
+            {course._count?.enrollments ?? 0} students
+          </span>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-2 shrink-0">
+        <Link href={`/teacher/courses/${course.uuid}`}>
+          <Button variant="outline" size="sm" className="gap-1.5">
+            <Edit className="h-3 w-3" />
+            Manage
+          </Button>
+        </Link>
+        <Link href={`/teacher/students?courseUuid=${course.uuid}`}>
+          <Button variant="ghost" size="sm" className="gap-1.5">
+            <Users className="h-3 w-3" />
+            Students
+          </Button>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+/* ── Page ───────────────────────────────────────────────────────────────── */
 
 export default function TeacherDashboard() {
   const { user } = useAuthStore();
@@ -18,137 +131,122 @@ export default function TeacherDashboard() {
     queryFn: () => coursesApi.getMine({ limit: 10 }),
   });
 
-  const courses: any[]    = (data as any)?.courses || data || [];
-  const totalCourses      = courses.length;
-  const publishedCourses  = courses.filter((c: any) => c.status === "PUBLISHED").length;
-  const totalStudents     = courses.reduce((acc: number, c: any) => acc + (c._count?.enrollments || 0), 0);
-  const totalQuizAttempts = courses.reduce((acc: number, c: any) => acc + (c.quizAttemptCount ?? 0), 0);
+  const courses:     any[] = (data as any)?.courses ?? data ?? [];
+  const totalCourses       = courses.length;
+  const publishedCourses   = courses.filter((c: any) => c.status === "PUBLISHED").length;
+  const totalStudents      = courses.reduce((a: number, c: any) => a + (c._count?.enrollments ?? 0), 0);
+  const totalQuizAttempts  = courses.reduce((a: number, c: any) => a + (c.quizAttemptCount ?? 0), 0);
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-8 max-w-5xl mx-auto">
+
+      {/* ── Header ─────────────────────────────────────────────────── */}
+      <div className="animate-fade-up animate-fade-up-1 flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Welcome, {user?.firstName}!</h1>
-          <p className="text-muted-foreground mt-1">Manage your courses and track student progress</p>
+          <p className="text-sm font-medium text-muted-foreground">Teacher dashboard</p>
+          <h1 className="text-3xl font-extrabold tracking-tight mt-1">
+            Hello, <span className="gradient-text">{user?.firstName}</span>!
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage your courses and track student progress.
+          </p>
         </div>
         <Link href="/teacher/courses/create">
-          <Button size="sm">
+          <Button className="gap-2">
             <Plus className="h-4 w-4" />
             Create Course
           </Button>
         </Link>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { icon: BookOpen,      label: "Total Courses",  value: totalCourses,      color: "from-violet-500 to-purple-600"  },
-          { icon: GraduationCap, label: "Published",      value: publishedCourses,  color: "from-emerald-500 to-teal-600"  },
-          { icon: Users,         label: "Total Students", value: totalStudents,     color: "from-blue-500 to-indigo-600"   },
-          { icon: BarChart2,     label: "Quiz Attempts",  value: totalQuizAttempts, color: "from-amber-500 to-orange-600"  },
-        ].map(({ icon: Icon, label, value, color }) => (
-          <Card key={label}>
-            <CardContent className="flex items-center gap-3 pt-5">
-              <div className={`rounded-xl bg-gradient-to-br ${color} p-2.5 shadow-md`}>
-                <Icon className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                {isLoading ? (
-                  <Skeleton className="h-6 w-10 mb-1" />
-                ) : (
-                  <p className="text-xl font-bold">{value}</p>
-                )}
-                <p className="text-xs text-muted-foreground">{label}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      {/* ── KPI strip ──────────────────────────────────────────────── */}
+      {isLoading ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-20 rounded-2xl" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard icon={BookOpen}      label="Total Courses"   value={totalCourses}      gradient="var(--gradient-brand)" delay="60ms" />
+          <KpiCard icon={GraduationCap} label="Published"       value={publishedCourses}  gradient="var(--gradient-cool)"  delay="120ms" />
+          <KpiCard icon={Users}         label="Total Students"  value={totalStudents}     gradient="linear-gradient(135deg,#3B82F6,#4F46E5)" delay="180ms" />
+          <KpiCard icon={BarChart2}     label="Quiz Attempts"   value={totalQuizAttempts} gradient="var(--gradient-warm)"  delay="240ms" />
+        </div>
+      )}
+
+      {/* ── AI course creation CTA ──────────────────────────────────── */}
+      <div
+        className="animate-fade-up animate-fade-up-3 rounded-2xl p-5 flex items-center justify-between gap-4 overflow-hidden relative"
+        style={{ background: "var(--gradient-brand)", boxShadow: "var(--shadow-glow-sm)" }}
+      >
+        <div
+          className="absolute right-0 top-0 h-full w-1/2 pointer-events-none"
+          style={{ background: "radial-gradient(ellipse at 100% 50%, rgba(255,255,255,0.12) 0%, transparent 60%)" }}
+        />
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="h-4 w-4 text-white/80" />
+            <span className="text-xs font-bold uppercase tracking-widest text-white/70">AI Generation</span>
+          </div>
+          <p className="text-base font-bold text-white leading-tight">
+            Create a full course with AI in seconds.
+          </p>
+          <p className="text-xs text-white/65 mt-0.5">
+            Describe your topic and let AI build the curriculum.
+          </p>
+        </div>
+        <Link href="/teacher/courses/create" className="relative z-10 shrink-0">
+          <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm font-semibold">
+            Try it <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
+        </Link>
       </div>
 
-      {/* Recent Courses */}
-      <section>
+      {/* ── My Courses ─────────────────────────────────────────────── */}
+      <section className="animate-fade-up animate-fade-up-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">My Courses</h2>
+          <div>
+            <h2 className="text-lg font-bold tracking-tight">My Courses</h2>
+            <p className="text-xs text-muted-foreground">Recent courses you manage</p>
+          </div>
           <Link href="/teacher/courses">
-            <Button variant="ghost" size="sm">View All <ArrowRight className="h-3 w-3 ml-1" /></Button>
+            <Button variant="ghost" size="sm" className="gap-1 text-xs font-semibold">
+              View all <ArrowRight className="h-3 w-3" />
+            </Button>
           </Link>
         </div>
 
         {isLoading ? (
           <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <Card key={i}><CardContent className="pt-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-2 flex-1">
-                    <Skeleton className="h-5 w-1/3" />
-                    <Skeleton className="h-4 w-1/4" />
-                  </div>
-                  <Skeleton className="h-8 w-24" />
-                </div>
-              </CardContent></Card>
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-24 rounded-2xl" />
             ))}
           </div>
         ) : courses.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-              <BookOpen className="h-10 w-10 text-muted-foreground mb-3" />
-              <p className="font-medium">No courses yet</p>
-              <p className="text-sm text-muted-foreground mt-1">Create your first course to get started</p>
-              <Link href="/teacher/courses/create" className="mt-4">
-                <Button size="sm"><Plus className="h-4 w-4" />Create Course</Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <div
+            className="rounded-2xl flex flex-col items-center justify-center py-16 text-center"
+            style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+          >
+            <div
+              className="h-14 w-14 rounded-2xl flex items-center justify-center mb-4"
+              style={{ background: "var(--secondary)" }}
+            >
+              <BookOpen className="h-7 w-7 text-muted-foreground" />
+            </div>
+            <p className="font-semibold">No courses yet</p>
+            <p className="text-sm text-muted-foreground mt-1">Create your first course to get started</p>
+            <Link href="/teacher/courses/create" className="mt-5">
+              <Button size="sm">
+                <Plus className="h-4 w-4" />
+                Create Course
+              </Button>
+            </Link>
+          </div>
         ) : (
-          <div className="space-y-2">
-            {courses.slice(0, 5).map((course: any) => (
-              <Card key={course.uuid} className="hover:shadow-md transition-shadow">
-                <CardContent className="pt-0 pb-0 p-0">
-                  <div className="flex items-center gap-4 p-3">
-                    {course.thumbnail ? (
-                      <div className="h-14 w-20 rounded-lg overflow-hidden shrink-0">
-                        <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
-                      </div>
-                    ) : (
-                      <div className="h-14 w-20 rounded-lg shrink-0 bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center">
-                        <BookOpen className="h-5 w-5 text-white/70" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-medium truncate text-sm">{course.title}</h3>
-                        <Badge
-                          variant={course.status === "PUBLISHED" ? "default" : course.status === "DRAFT" ? "secondary" : "outline"}
-                          className="text-xs shrink-0"
-                        >
-                          {course.status}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <BookOpen className="h-3 w-3" />{course._count?.lessons || 0} lessons
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Users className="h-3 w-3" />{course._count?.enrollments || 0} students
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Link href={`/teacher/courses/${course.uuid}`}>
-                        <Button variant="outline" size="sm">
-                          <Edit className="h-3 w-3" />Manage
-                        </Button>
-                      </Link>
-                      <Link href={`/teacher/students?courseUuid=${course.uuid}`}>
-                        <Button variant="ghost" size="sm">
-                          <Users className="h-3 w-3" />Students
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+          <div className="space-y-3">
+            {courses.slice(0, 5).map((c: any) => (
+              <CourseRow key={c.uuid} course={c} />
             ))}
           </div>
         )}
