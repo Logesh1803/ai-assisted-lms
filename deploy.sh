@@ -40,7 +40,15 @@ chown -R "$REAL_USER:$REAL_USER" apps/api/logs apps/web/logs apps/worker/logs
 echo "===> Installing dependencies..."
 yarn install --frozen-lockfile
 
-# 3. Generate Prisma client
+# 3. Fix ownership of any root-owned build artifacts, then generate Prisma client
+echo "===> Fixing file ownership..."
+for dir in libs/data-sources/generated apps/web/.next apps/api/dist apps/worker/dist; do
+    if [ -d "$dir" ]; then
+        chown -R "$REAL_USER:$REAL_USER" "$dir" 2>/dev/null || \
+        sudo chown -R "$REAL_USER:$REAL_USER" "$dir"
+    fi
+done
+
 echo "===> Generating Prisma client..."
 yarn prisma:system:generate
 
