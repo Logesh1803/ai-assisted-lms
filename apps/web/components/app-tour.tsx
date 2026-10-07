@@ -162,8 +162,8 @@ export function AppTour({ role }: Props) {
     const done = localStorage.getItem(storageKey);
     if (!done) {
       // slight delay so layout has mounted and IDs are in the DOM
-      const t = setTimeout(() => setRun(true), 600);
-      return () => clearTimeout(t);
+      const startTourTimer = setTimeout(() => setRun(true), 600);
+      return () => clearTimeout(startTourTimer);
     }
   }, [storageKey]);
 

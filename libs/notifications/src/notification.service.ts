@@ -1,7 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { userInviteEmailTemplate } from "./templates/verification-email";
 import { EmailChannel } from "./channel/email.channel";
-import { TokenType } from "@thinkbloom/data-sources";
 import { forgotPasswordEmailTemplate } from "./templates/forgot-password";
 import { enrollmentConfirmationEmailTemplate } from "./templates/enrollment-confirmation";
 import { quizCompletedEmailTemplate } from "./templates/quiz-completed";
@@ -15,27 +13,22 @@ export class NotificationService {
 
   // ─── Password Reset ───────────────────────────────────────────────────────
 
-  async sendUserPasswordResetNotification(data: any) {
-    const { name, token, email, type } = data;
+  async sendUserPasswordResetNotification(data: {
+    name: string;
+    email: string;
+    token: string;
+    type: string;
+  }) {
+    const { name, token, email } = data;
+    const frontendUrl = process.env.FRONTEND_URL ?? "";
+    const expiresIn = "1 day";
 
-    let link: string;
-    let template: any;
-    if (type === TokenType.PASSWORD_RESET) {
-      link =
-        process.env.FRONTEND_URL +
-        "/auth/forgot-password?token=" +
-        token +
-        "&email=" +
-        email;
-      template = forgotPasswordEmailTemplate;
-    } else {
-      link =
-        process.env.FRONTEND_URL + "/set-password/" + token + "?email=" + email;
-      template = userInviteEmailTemplate;
-    }
-
-    const payload = { firstName: name, link, expiresIn: "1 day" };
-    const content = template(payload);
+    const content = forgotPasswordEmailTemplate({
+      firstName: name,
+      resetLink: `${frontendUrl}/auth/reset-password?${new URLSearchParams({ token, email })}`,
+      expiresIn,
+      domain: frontendUrl,
+    });
 
     await this.emailChannel.send({
       to: email,

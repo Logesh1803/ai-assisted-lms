@@ -3,9 +3,10 @@ import {
   BULL_QUEUES,
   BullMQWorkerHost,
   VIDEO_JOBS,
-} from "message-queues/src";
-import { NotificationService } from "notifications/src";
+} from "@thinkbloom/message-queues";
+import { NotificationService } from "@thinkbloom/notifications";
 import { Logger } from "@nestjs/common";
+import { Job } from "bullmq";
 
 @Processor(BULL_QUEUES.VIDEO_PROCESSING)
 export class VideoConsumerService extends BullMQWorkerHost {
@@ -15,8 +16,10 @@ export class VideoConsumerService extends BullMQWorkerHost {
     super();
   }
 
-  async process(job: any): Promise<any> {
-    this.logger.log(`Processing video job: ${job.name} for lesson ${job.data?.lessonId}`);
+  async process(job: Job): Promise<void> {
+    this.logger.log(
+      `Processing video job: ${job.name} for lesson ${job.data?.lessonId}`,
+    );
 
     switch (job.name) {
       case VIDEO_JOBS.PROCESS_VIDEO: {

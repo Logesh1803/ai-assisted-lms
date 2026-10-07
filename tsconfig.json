@@ -27,8 +27,8 @@
       "@thinkbloom/utils": [
         "libs/utils/src"
       ],
-      "@thinkbloom/message-queue": [
-        "libs/message-queue/src"
+      "@thinkbloom/message-queues": [
+        "libs/message-queues/src"
       ],
       "@thinkbloom/notifications": [
         "libs/notifications/src"

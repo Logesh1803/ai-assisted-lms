@@ -1,11 +1,12 @@
 import { Processor } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
+import { Job } from "bullmq";
 import {
   BULL_QUEUES,
   BullMQWorkerHost,
   NOTIFICATION_JOBS,
-} from "message-queues/src";
-import { NotificationService } from "notifications/src";
+} from "@thinkbloom/message-queues";
+import { NotificationService } from "@thinkbloom/notifications";
 @Processor(BULL_QUEUES.NOTIFICATIONS)
 export class NotificationConsumerService extends BullMQWorkerHost {
   protected readonly logger = new Logger(NotificationConsumerService.name);
@@ -14,12 +15,14 @@ export class NotificationConsumerService extends BullMQWorkerHost {
     super();
   }
 
-  async process(job: any): Promise<any> {
+  async process(job: Job): Promise<void> {
     this.logger.log(`Processing notification job: ${job.name}`);
 
     switch (job.name) {
       case NOTIFICATION_JOBS.USER_PASSWORD_RESET:
-        await this.notificationService.sendUserPasswordResetNotification(job.data);
+        await this.notificationService.sendUserPasswordResetNotification(
+          job.data,
+        );
         break;
 
       case NOTIFICATION_JOBS.ENROLLMENT_CONFIRMATION:
@@ -31,7 +34,9 @@ export class NotificationConsumerService extends BullMQWorkerHost {
         break;
 
       case NOTIFICATION_JOBS.LESSON_COMPLETED:
-        this.logger.log(`Lesson completed notification for: ${job.data.studentEmail}`);
+        this.logger.log(
+          `Lesson completed notification for: ${job.data.studentEmail}`,
+        );
         // Optional: implement lesson completion email if needed
         break;
 

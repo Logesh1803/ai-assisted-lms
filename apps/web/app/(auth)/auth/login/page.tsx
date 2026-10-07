@@ -25,7 +25,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 function LoginForm({ role }: { role: "STUDENT" | "TEACHER" }) {
   const router = useRouter();
-  const setAuth = useAuthStore((s) => s.setAuth);
+  const setAuth = useAuthStore((state) => state.setAuth);
   const [isLoading, setIsLoading]     = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -38,7 +38,7 @@ function LoginForm({ role }: { role: "STUDENT" | "TEACHER" }) {
     setIsLoading(true);
     try {
       const data = await authApi.login(values);
-      const { accessToken, user } = data as any;
+      const { accessToken, user } = data;
       if (user.role !== role) {
         toast.error(
           `This account is registered as a ${user.role.toLowerCase()}. Please use the correct tab.`
@@ -48,8 +48,11 @@ function LoginForm({ role }: { role: "STUDENT" | "TEACHER" }) {
       setAuth(user, accessToken);
       toast.success(`Welcome back, ${user.firstName}!`);
       router.replace(user.role === "TEACHER" ? "/teacher/dashboard" : "/student/dashboard");
-    } catch (err: any) {
-      const msg: string = err.message || "Login failed. Please check your credentials.";
+    } catch (err) {
+      const msg =
+        err instanceof Error && err.message
+          ? err.message
+          : "Login failed. Please check your credentials.";
       if (msg.toLowerCase().includes("password")) {
         form.setError("password", { message: "Incorrect password" });
       } else if (
@@ -114,7 +117,7 @@ function LoginForm({ role }: { role: "STUDENT" | "TEACHER" }) {
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPassword((v) => !v)}
+                      onClick={() => setShowPassword((isVisible) => !isVisible)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                       tabIndex={-1}
                     >

@@ -80,16 +80,16 @@ export function AppSidebar({ navItems, role, onClose }: AppSidebarProps) {
                   ? { background: "var(--sidebar-accent)", color: "white" }
                   : { color: "rgba(255,255,255,0.55)" }
               }
-              onMouseEnter={(e) => {
+              onMouseEnter={(event) => {
                 if (!isActive) {
-                  (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.90)";
-                  (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)";
+                  (event.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.90)";
+                  (event.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)";
                 }
               }}
-              onMouseLeave={(e) => {
+              onMouseLeave={(event) => {
                 if (!isActive) {
-                  (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.55)";
-                  (e.currentTarget as HTMLElement).style.background = "transparent";
+                  (event.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.55)";
+                  (event.currentTarget as HTMLElement).style.background = "transparent";
                 }
               }}
             >
@@ -181,13 +181,13 @@ export function AppSidebar({ navItems, role, onClose }: AppSidebarProps) {
               style={{ color: "rgba(255,255,255,0.40)" }}
               onClick={() => setConfirmLogout(true)}
               title="Sign out"
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.color = "rgba(239,68,68,0.80)";
-                (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.10)";
+              onMouseEnter={(event) => {
+                (event.currentTarget as HTMLElement).style.color = "rgba(239,68,68,0.80)";
+                (event.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.10)";
               }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.40)";
-                (e.currentTarget as HTMLElement).style.background = "transparent";
+              onMouseLeave={(event) => {
+                (event.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.40)";
+                (event.currentTarget as HTMLElement).style.background = "transparent";
               }}
             >
               <LogOut className="h-3.5 w-3.5" />

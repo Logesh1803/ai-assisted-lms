@@ -16,7 +16,7 @@ export default function MyLearningPage() {
     queryFn: () => enrollmentsApi.getMyEnrollments({ limit: 50 }),
   });
 
-  const enrollments: any[] = (data as any)?.enrollments ?? data ?? [];
+  const enrollments = data?.enrollments ?? [];
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -29,7 +29,7 @@ export default function MyLearningPage() {
 
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-72 rounded-2xl" />)}
+          {[0, 1, 2].map((index) => <Skeleton key={index} className="h-72 rounded-2xl" />)}
         </div>
       ) : enrollments.length === 0 ? (
         <div
@@ -47,12 +47,11 @@ export default function MyLearningPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 animate-fade-up animate-fade-up-2">
-          {enrollments.map((enrollment: any) => {
-            const progress    = enrollment.progressPercent ?? enrollment.progress ?? 0;
+          {enrollments.map((enrollment) => {
+            const progress = enrollment.progress ?? 0;
             const isCompleted = enrollment.status === "COMPLETED";
-            const course      = enrollment.course ?? {};
-            const courseUuid  = course.uuid ?? enrollment.courseUuid;
-            const firstLessonId = (course.lessons ?? [])[0]?.id;
+            const course = enrollment.course;
+            const courseUuid = course?.uuid ?? "";
 
             return (
               <div
@@ -62,10 +61,10 @@ export default function MyLearningPage() {
               >
                 {/* Thumbnail */}
                 <div className="relative h-44 overflow-hidden shrink-0">
-                  {course.thumbnail ? (
+                  {course?.thumbnail ? (
                     <img
-                      src={course.thumbnail}
-                      alt={course.title}
+                      src={course?.thumbnail}
+                      alt={course?.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   ) : (
@@ -74,7 +73,7 @@ export default function MyLearningPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <p className="font-semibold text-white text-sm line-clamp-2 leading-snug">
-                      {course.title ?? "Untitled Course"}
+                      {course?.title ?? "Untitled Course"}
                     </p>
                   </div>
                   <div className="absolute top-3 right-3">
@@ -87,9 +86,9 @@ export default function MyLearningPage() {
 
                 {/* Content */}
                 <div className="p-4 flex flex-col gap-3 flex-1">
-                  {enrollment.createdAt && (
+                  {enrollment.enrolled_at && (
                     <p className="text-xs text-muted-foreground">
-                      Enrolled {formatDate(enrollment.createdAt)}
+                      Enrolled {formatDate(enrollment.enrolled_at)}
                     </p>
                   )}
                   <div className="space-y-1.5">
@@ -103,14 +102,17 @@ export default function MyLearningPage() {
                     <Link href={`/student/courses/${courseUuid}`} className="flex-1">
                       <Button variant="outline" size="sm" className="w-full">View Course</Button>
                     </Link>
-                    {firstLessonId && (
-                      <Link href={`/student/courses/${courseUuid}/learn/${firstLessonId}`} className="flex-1">
-                        <Button size="sm" className="w-full gap-1.5">
-                          <Play className="h-3 w-3" />
-                          {isCompleted ? "Review" : "Continue"}
-                        </Button>
-                      </Link>
-                    )}
+                    {/* This endpoint returns a course summary without its
+                        lessons, so there is no lesson id to deep-link to.
+                        The button previously depended on one and therefore
+                        never appeared; it now opens the course page, which
+                        does list the lessons. */}
+                    <Link href={`/student/courses/${courseUuid}`} className="flex-1">
+                      <Button size="sm" className="w-full gap-1.5">
+                        <Play className="h-3 w-3" />
+                        {isCompleted ? "Review" : "Continue"}
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </div>

@@ -1,7 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { SystemsDatabaseService } from '@thinkbloom/data-sources';
-import { GeminiService } from '../gemini/gemini.service';
-import { SendMessageDto, ExplainConceptDto } from './dto/chatbot.dto';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  PrismaSystemTypes,
+  SystemsDatabaseService,
+} from "@thinkbloom/data-sources";
+import { GeminiService } from "../gemini/gemini.service";
+import { SendMessageDto, ExplainConceptDto } from "./dto/chatbot.dto";
+
+/** A chat session loaded together with its messages. */
+type ChatSessionWithMessages = PrismaSystemTypes.ChatSessionModel & {
+  messages: PrismaSystemTypes.ChatMessageModel[];
+};
 
 @Injectable()
 export class ChatbotService {
@@ -13,21 +21,22 @@ export class ChatbotService {
   // ─── Send Message ─────────────────────────────────────────────────────────
 
   async sendMessage(userId: number, dto: SendMessageDto) {
-    let session: any;
+    let session: ChatSessionWithMessages;
 
     if (dto.sessionUuid) {
-      session = await this.prisma.chatSession.findUnique({
+      const existing = await this.prisma.chatSession.findUnique({
         where: { uuid: dto.sessionUuid },
-        include: { messages: { orderBy: { created_at: 'asc' } } },
+        include: { messages: { orderBy: { created_at: "asc" } } },
       });
-      if (!session || session.user_id !== userId) {
-        throw new NotFoundException('Chat session not found');
+      if (!existing || existing.user_id !== userId) {
+        throw new NotFoundException("Chat session not found");
       }
+      session = existing;
     } else {
       // Create a new session with auto-title from first message
       const title =
         dto.message.length > 50
-          ? dto.message.substring(0, 50) + '...'
+          ? dto.message.substring(0, 50) + "..."
           : dto.message;
 
       session = await this.prisma.chatSession.create({
@@ -42,9 +51,9 @@ export class ChatbotService {
     }
 
     // Build history for context
-    const history = (session.messages || []).map((m: any) => ({
-      role: m.role,
-      content: m.content,
+    const history = (session.messages ?? []).map((message) => ({
+      role: message.role,
+      content: message.content,
     }));
 
     // Get course context if courseId provided
@@ -73,13 +82,13 @@ export class ChatbotService {
       data: [
         {
           session_id: session.id,
-          role: 'user',
+          role: "user",
           content: dto.message,
           created_at: now,
         },
         {
           session_id: session.id,
-          role: 'assistant',
+          role: "assistant",
           content: aiResponse,
           created_at: now + BigInt(1),
         },
@@ -103,7 +112,7 @@ export class ChatbotService {
   async getSessions(userId: number) {
     return this.prisma.chatSession.findMany({
       where: { user_id: userId },
-      orderBy: { created_at: 'desc' },
+      orderBy: { created_at: "desc" },
       select: {
         uuid: true,
         title: true,
@@ -121,12 +130,12 @@ export class ChatbotService {
     const session = await this.prisma.chatSession.findUnique({
       where: { uuid: sessionUuid },
       include: {
-        messages: { orderBy: { created_at: 'asc' } },
+        messages: { orderBy: { created_at: "asc" } },
       },
     });
 
     if (!session || session.user_id !== userId) {
-      throw new NotFoundException('Chat session not found');
+      throw new NotFoundException("Chat session not found");
     }
 
     return session;
@@ -139,10 +148,10 @@ export class ChatbotService {
       where: { uuid: sessionUuid },
     });
     if (!session || session.user_id !== userId) {
-      throw new NotFoundException('Chat session not found');
+      throw new NotFoundException("Chat session not found");
     }
     await this.prisma.chatSession.delete({ where: { uuid: sessionUuid } });
-    return { message: 'Session deleted' };
+    return { message: "Session deleted" };
   }
 
   // ─── Explain Concept (multi-subject) ────────────────────────────────────

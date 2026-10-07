@@ -1,61 +1,79 @@
+import { ApiPropertyOptional } from "@nestjs/swagger";
+import { Type } from "class-transformer";
+import { IsInt, IsOptional, Max, Min } from "class-validator";
 import {
   AddressField,
   EmailField,
-  OtpField, PasswordField,
-  PhoneField, StatusField, StringField,
+  OtpField,
+  PasswordField,
+  PhoneField,
   TokenField,
-  UserNameField
+  UserNameField,
 } from "../decorators";
-
 
 // Base user info dto
 
-export class UserNameDto{
-  @UserNameField("John",25,"First Name",true)
-  firstName:string;
+export class UserNameDto {
+  @UserNameField("John", 25, "First Name", true)
+  firstName: string;
 
-  @UserNameField("Doe",25,"Last Name",false)
-  lastName:string;
+  @UserNameField("Doe", 25, "Last Name", false)
+  lastName: string;
 }
 
 export class EmailDto {
   @EmailField()
-  email:string;
+  email: string;
 }
 
-export class PhoneDto{
+export class PhoneDto {
   @PhoneField()
-  phone:string;
+  phone: string;
 }
 
-export class AddressDto{
+export class AddressDto {
   @AddressField()
-  address:string;
+  address: string;
 }
 
 // Base auth dto
 
 export class VerificationTokenDto {
   @TokenField()
-  token:string;
+  token: string;
 }
 
-export class VerificationOtpDto{
+export class VerificationOtpDto {
   @OtpField()
-  otp:string;
+  otp: string;
 }
-export class PlainPasswordDto{
+export class PlainPasswordDto {
   @PasswordField()
-  password:string;
+  password: string;
 }
 
-export class StrongPasswordDto{
+export class StrongPasswordDto {
   @PasswordField(true)
-  password:string;
+  password: string;
 }
 
+/**
+ * `page` and `limit` for list endpoints. Query values arrive as strings, so
+ * @Type turns them into numbers before the checks run.
+ */
+export class PaginationQueryDto {
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
 
-
-
-
-
+  @ApiPropertyOptional({ example: 12 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+}

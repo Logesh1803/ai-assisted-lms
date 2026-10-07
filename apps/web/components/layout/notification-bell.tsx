@@ -18,14 +18,21 @@ interface Notification {
   created_at: string | number;
 }
 
-function timeAgo(ts: string | number): string {
-  const diff = Date.now() - Number(ts);
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
+/**
+ * "5m ago" / "3h ago" / "2d ago". Deliberately different from the shared
+ * timeAgo helper in @/lib/utils: the bell spells out "ago" and keeps counting
+ * days instead of switching to a calendar date after a week.
+ */
+function timeAgoWithSuffix(timestamp: string | number): string {
+  const millisecondsAgo = Date.now() - Number(timestamp);
+  const minutes = Math.floor(millisecondsAgo / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  return `${Math.floor(hours / 24)}d ago`;
 }
 
 export function NotificationBell() {
@@ -44,8 +51,8 @@ export function NotificationBell() {
     staleTime: Infinity,
   });
 
-  const notifications = (data as any)?.notifications ?? [];
-  const unreadCount = (data as any)?.unreadCount ?? 0;
+  const notifications = data?.notifications ?? [];
+  const unreadCount = data?.unreadCount ?? 0;
 
   const markReadMutation = useMutation({
     mutationFn: (uuid: string) => notificationsApi.markRead(uuid),
@@ -66,9 +73,9 @@ export function NotificationBell() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleClick = (notif: Notification) => {
-    if (!notif.is_read) markReadMutation.mutate(notif.uuid);
-    const actionUrl = notif.data?.actionUrl;
+  const handleClick = (notification: Notification) => {
+    if (!notification.is_read) markReadMutation.mutate(notification.uuid);
+    const actionUrl = notification.data?.actionUrl;
     if (actionUrl) router.push(actionUrl);
     setOpen(false);
   };
@@ -134,40 +141,40 @@ export function NotificationBell() {
                 <p className="text-sm">No notifications yet</p>
               </div>
             ) : (
-              notifications.map((notif: Notification) => (
+              notifications.map((notification: Notification) => (
                 <button
-                  key={notif.uuid}
-                  onClick={() => handleClick(notif)}
+                  key={notification.uuid}
+                  onClick={() => handleClick(notification)}
                   className={cn(
                     "w-full text-left px-4 py-3 transition-colors flex items-start gap-3",
                   )}
                   style={{
                     borderBottom: "1px solid var(--border)",
-                    background: !notif.is_read ? "rgba(124,58,237,0.04)" : undefined,
+                    background: !notification.is_read ? "rgba(124,58,237,0.04)" : undefined,
                   }}
-                  onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = "var(--muted)"}
-                  onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.background = !notif.is_read ? "rgba(124,58,237,0.04)" : "transparent"}
+                  onMouseEnter={(event) => (event.currentTarget as HTMLElement).style.background = "var(--muted)"}
+                  onMouseLeave={(event) => (event.currentTarget as HTMLElement).style.background = !notification.is_read ? "rgba(124,58,237,0.04)" : "transparent"}
                 >
                   <div
                     className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
                     style={
-                      notif.type === "QUIZ_ATTEMPTED"
+                      notification.type === "QUIZ_ATTEMPTED"
                         ? { background: "rgba(245,158,11,0.12)", color: "#F59E0B" }
                         : { background: "rgba(124,58,237,0.10)", color: "var(--primary)" }
                     }
                   >
-                    {notif.type === "QUIZ_ATTEMPTED"
+                    {notification.type === "QUIZ_ATTEMPTED"
                       ? <Trophy className="h-4 w-4" />
                       : <BookOpen className="h-4 w-4" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className={cn("text-sm font-semibold truncate", !notif.is_read && "text-foreground")}>
-                      {notif.title}
+                    <p className={cn("text-sm font-semibold truncate", !notification.is_read && "text-foreground")}>
+                      {notification.title}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{notif.message}</p>
-                    <p className="text-[11px] text-muted-foreground mt-1">{timeAgo(notif.created_at)}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{notification.message}</p>
+                    <p className="text-[11px] text-muted-foreground mt-1">{timeAgoWithSuffix(notification.created_at)}</p>
                   </div>
-                  {!notif.is_read && (
+                  {!notification.is_read && (
                     <span className="mt-2 h-2 w-2 shrink-0 rounded-full" style={{ background: "var(--primary)" }} />
                   )}
                 </button>

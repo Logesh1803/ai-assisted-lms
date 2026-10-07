@@ -15,7 +15,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -36,6 +35,8 @@ import {
   FileText,
   Loader2,
 } from "lucide-react";
+import type { BadgeProps } from "@/components/ui/badge";
+import type { CourseStatus } from "@/lib/types";
 
 export default function TeacherCoursesPage() {
   const queryClient = useQueryClient();
@@ -54,7 +55,7 @@ export default function TeacherCoursesPage() {
       queryClient.invalidateQueries({ queryKey: ["teacher-courses-list"] });
       queryClient.invalidateQueries({ queryKey: ["teacher-courses"] });
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
   const deleteMutation = useMutation({
@@ -65,12 +66,12 @@ export default function TeacherCoursesPage() {
       queryClient.invalidateQueries({ queryKey: ["teacher-courses"] });
       setDeleteUuid(null);
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
-  const courses: any[] = (data as any)?.courses || data || [];
+  const courses = data?.courses ?? [];
 
-  const statusVariant = (status: string) => {
+  const statusVariant = (status: CourseStatus): BadgeProps["variant"] => {
     if (status === "PUBLISHED") return "default";
     if (status === "DRAFT") return "secondary";
     return "outline";
@@ -93,8 +94,8 @@ export default function TeacherCoursesPage() {
 
       {isLoading ? (
         <div className="space-y-3">
-          {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-20 rounded-2xl" />
+          {[0, 1, 2, 3].map((index) => (
+            <Skeleton key={index} className="h-20 rounded-2xl" />
           ))}
         </div>
       ) : courses.length === 0 ? (
@@ -119,19 +120,19 @@ export default function TeacherCoursesPage() {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--muted)" }}>
-                {["Title", "Status", "Lessons", "Students", "Created", ""].map((h) => (
-                  <th key={h} className="text-left px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide first:rounded-tl-2xl last:rounded-tr-2xl">{h}</th>
+                {["Title", "Status", "Lessons", "Students", "Created", ""].map((header) => (
+                  <th key={header} className="text-left px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide first:rounded-tl-2xl last:rounded-tr-2xl">{header}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {courses.map((course: any) => (
+              {courses.map((course) => (
                 <tr
                   key={course.uuid}
                   className="transition-colors"
                   style={{ borderBottom: "1px solid var(--border)" }}
-                  onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = "var(--muted)"}
-                  onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.background = "transparent"}
+                  onMouseEnter={(event) => (event.currentTarget as HTMLElement).style.background = "var(--muted)"}
+                  onMouseLeave={(event) => (event.currentTarget as HTMLElement).style.background = "transparent"}
                 >
                   <td className="py-3.5 px-5">
                     <div className="flex items-center gap-3">
@@ -153,7 +154,7 @@ export default function TeacherCoursesPage() {
                     </div>
                   </td>
                   <td className="py-3.5 px-5">
-                    <Badge variant={statusVariant(course.status) as any}>{course.status}</Badge>
+                    <Badge variant={statusVariant(course.status)}>{course.status}</Badge>
                   </td>
                   <td className="py-3.5 px-5">
                     <span className="flex items-center gap-1 text-muted-foreground text-xs">
@@ -168,7 +169,7 @@ export default function TeacherCoursesPage() {
                     </span>
                   </td>
                   <td className="py-3.5 px-5 text-muted-foreground text-xs">
-                    {course.createdAt ? formatDate(course.createdAt) : "—"}
+                    {course.created_at ? formatDate(course.created_at) : "—"}
                   </td>
                   <td className="py-3.5 px-5">
                     <DropdownMenu>

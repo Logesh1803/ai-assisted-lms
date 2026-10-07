@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { authApi } from "@/lib/api";
+import { getFriendlyError } from "@/lib/errors";
 
 const forgotSchema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -34,8 +35,8 @@ export default function ForgotPasswordPage() {
     try {
       await authApi.forgotPassword(values.email);
       setSubmitted(true);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to send reset email.");
+    } catch (err) {
+      toast.error(getFriendlyError(err));
     } finally {
       setIsLoading(false);
     }

@@ -3,7 +3,6 @@
 import { use, useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { coursesApi, lessonsApi, progressApi, quizApi } from "@/lib/api";
@@ -27,16 +26,7 @@ import {
   AlertCircle,
   RefreshCw,
 } from "lucide-react";
-
-type QuizQuestion = {
-  id: string;
-  type: "MCQ" | "SHORT_ANSWER";
-  question: string;
-  options?: string[];
-  correct_answer: string;
-  keywords?: string[];
-  topic: string;
-};
+import type { QuizAttempt, QuizQuestion } from "@/lib/types";
 
 type QuizState = "idle" | "generating" | "active" | "processing" | "submitted";
 
@@ -46,7 +36,6 @@ export default function LessonLearnPage({
   params: Promise<{ uuid: string; lessonId: string }>;
 }) {
   const { uuid, lessonId } = use(params);
-  const router = useRouter();
   const queryClient = useQueryClient();
   const videoRef = useRef<HTMLVideoElement>(null);
   const watchTimeRef = useRef(0);
@@ -56,9 +45,9 @@ export default function LessonLearnPage({
   const [generatingNotes, setGeneratingNotes] = useState(false);
   const [quizState, setQuizState] = useState<QuizState>("idle");
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
-  const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
+  const [quizAnswers, setQuizAnswers] = useState<Record<number, string>>({});
   const [attemptUuid, setAttemptUuid] = useState<string | null>(null);
-  const [quizResult, setQuizResult] = useState<any>(null);
+  const [quizResult, setQuizResult] = useState<QuizAttempt | null>(null);
 
   const { data: course } = useQuery({
     queryKey: ["course", uuid],
@@ -86,7 +75,7 @@ export default function LessonLearnPage({
   // Restore submitted state if a previous attempt exists
   useEffect(() => {
     if (!prevAttempts) return;
-    const attempts = (prevAttempts as unknown) as any[];
+    const attempts = prevAttempts;
     if (attempts.length === 0) return;
     const last = attempts[0]; // most recent first
     if (last.submitted_at && quizState === "idle") {
@@ -102,7 +91,7 @@ export default function LessonLearnPage({
       queryClient.invalidateQueries({ queryKey: ["lesson", lessonIdNum] });
       queryClient.invalidateQueries({ queryKey: ["my-enrollments"] });
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
   // Track watch time
@@ -132,11 +121,13 @@ export default function LessonLearnPage({
     };
   }, [lessonIdNum]);
 
-  const courseData = course as any;
-  const lessonData = lesson as any;
-  const notesData = notes as any;
-  const lessons: any[] = courseData?.lessons || [];
-  const currentIndex = lessons.findIndex((l) => l.id === lessonIdNum);
+  const courseData = course;
+  const lessonData = lesson;
+  const notesData = notes;
+  const lessons = courseData?.lessons ?? [];
+  const currentIndex = lessons.findIndex(
+    (courseLesson) => courseLesson.id === lessonIdNum,
+  );
   const prevLesson = currentIndex > 0 ? lessons[currentIndex - 1] : null;
   const nextLesson = currentIndex < lessons.length - 1 ? lessons[currentIndex + 1] : null;
 
@@ -146,7 +137,7 @@ export default function LessonLearnPage({
       await lessonsApi.generateNotes(lessonIdNum);
       await refetchNotes();
       toast.success("Notes generated!");
-    } catch (err: any) {
+    } catch (err) {
       toast.error(getFriendlyError(err));
     } finally {
       setGeneratingNotes(false);
@@ -160,16 +151,14 @@ export default function LessonLearnPage({
         mcqCount: 5,
         shortAnswerCount: 2,
       });
-      const generatedData = generated as any;
-      const questions: QuizQuestion[] = generatedData.questions || generatedData;
+      const questions = generated.questions;
       setQuizQuestions(questions);
 
       const started = await quizApi.start(uuid, { questions });
-      const startedData = started as any;
-      setAttemptUuid(startedData.uuid || startedData.attemptUuid);
+      setAttemptUuid(started.uuid);
       setQuizAnswers({});
       setQuizState("active");
-    } catch (err: any) {
+    } catch (err) {
       toast.error(getFriendlyError(err));
       setQuizState("idle");
     }
@@ -179,14 +168,14 @@ export default function LessonLearnPage({
     if (!attemptUuid) return;
     setQuizState("processing");
     try {
-      const answers = quizQuestions.map((q) => ({
-        questionId: q.id,
-        answer: quizAnswers[q.id] || "",
+      const answers = quizQuestions.map((question) => ({
+        questionId: question.id,
+        answer: quizAnswers[question.id] || "",
       }));
       const result = await quizApi.submit(attemptUuid, { answers });
       setQuizResult(result);
       setQuizState("submitted");
-    } catch (err: any) {
+    } catch (err) {
       toast.error(getFriendlyError(err));
       setQuizState("active");
     }
@@ -213,7 +202,10 @@ export default function LessonLearnPage({
     );
   }
 
-  const isCompleted = lessonData.progress?.isCompleted || lessonData.isCompleted;
+  // `progress` is the student's progress rows for this lesson, so the flag
+  // lives on the first entry. Reading `.isCompleted` straight off the array
+  // always came back undefined, so a lesson never looked finished.
+  const isCompleted = lessonData.progress?.[0]?.is_completed ?? false;
 
   return (
     <div className="space-y-6">
@@ -328,7 +320,7 @@ export default function LessonLearnPage({
                       <Sparkles className="h-10 w-10 mx-auto mb-3 opacity-40" />
                       <p className="font-medium">No notes yet</p>
                       <p className="text-sm mt-1">
-                        Click "Generate Notes" to create AI-powered notes for this lesson
+                        Click &quot;Generate Notes&quot; to create AI-powered notes for this lesson
                       </p>
                     </div>
                   )}
@@ -379,7 +371,7 @@ export default function LessonLearnPage({
 
                   {quizState === "active" && (() => {
                     const answeredCount = quizQuestions.filter(
-                      (q) => quizAnswers[q.id]?.trim()
+                      (question) => quizAnswers[question.id]?.trim()
                     ).length;
                     const allAnswered = answeredCount === quizQuestions.length;
 
@@ -401,10 +393,10 @@ export default function LessonLearnPage({
                           />
                         </div>
 
-                        {quizQuestions.map((q, index) => {
-                          const isAnswered = !!quizAnswers[q.id]?.trim();
+                        {quizQuestions.map((question, index) => {
+                          const isAnswered = !!quizAnswers[question.id]?.trim();
                           return (
-                            <div key={q.id} className="space-y-3">
+                            <div key={question.id} className="space-y-3">
                               <div className="flex items-start gap-2">
                                 <span className={`flex items-center justify-center h-6 w-6 rounded-full text-xs font-medium shrink-0 mt-0.5 transition-colors ${
                                   isAnswered
@@ -414,10 +406,10 @@ export default function LessonLearnPage({
                                   {index + 1}
                                 </span>
                                 <div className="flex-1">
-                                  <p className="font-medium">{q.question}</p>
+                                  <p className="font-medium">{question.question}</p>
                                   <div className="flex items-center gap-2 mt-1">
                                     <Badge variant="outline" className="text-xs">
-                                      {q.topic}
+                                      {question.topic}
                                     </Badge>
                                     {!isAnswered && (
                                       <span className="text-xs text-amber-500">Unanswered</span>
@@ -426,24 +418,24 @@ export default function LessonLearnPage({
                                 </div>
                               </div>
 
-                              {q.type === "MCQ" && q.options ? (
+                              {question.type === "MCQ" && question.options ? (
                                 <div className="space-y-2 ml-8">
-                                  {q.options.map((option, optIdx) => (
+                                  {question.options.map((option, optIdx) => (
                                     <label
                                       key={optIdx}
                                       className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                                        quizAnswers[q.id] === option
+                                        quizAnswers[question.id] === option
                                           ? "border-primary bg-primary/10 text-primary"
                                           : "hover:bg-accent"
                                       }`}
                                     >
                                       <input
                                         type="radio"
-                                        name={q.id}
+                                        name={String(question.id)}
                                         value={option}
-                                        checked={quizAnswers[q.id] === option}
+                                        checked={quizAnswers[question.id] === option}
                                         onChange={() =>
-                                          setQuizAnswers((prev) => ({ ...prev, [q.id]: option }))
+                                          setQuizAnswers((prev) => ({ ...prev, [question.id]: option }))
                                         }
                                         className="accent-primary"
                                       />
@@ -455,9 +447,9 @@ export default function LessonLearnPage({
                                 <div className="ml-8">
                                   <Textarea
                                     placeholder="Type your answer here..."
-                                    value={quizAnswers[q.id] || ""}
-                                    onChange={(e) =>
-                                      setQuizAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
+                                    value={quizAnswers[question.id] || ""}
+                                    onChange={(event) =>
+                                      setQuizAnswers((prev) => ({ ...prev, [question.id]: event.target.value }))
                                     }
                                     rows={3}
                                   />
@@ -484,12 +476,12 @@ export default function LessonLearnPage({
                   })()}
 
                   {quizState === "submitted" && quizResult && (() => {
-                    const r = quizResult as any;
-                    // support both camelCase (fresh submit) and snake_case (loaded from DB)
-                    const score = r.score ?? r.scorePercent ?? 0;
-                    const strongTopics: string[] = r.strongTopics ?? r.strong_topics ?? [];
-                    const weakTopics: string[] = r.weakTopics ?? r.weak_topics ?? [];
-                    const feedback: string = r.feedback ?? r.ai_feedback ?? "";
+                    // Both a fresh submit and a stored attempt come back as
+                    // the same snake_case row, so there is one shape to read.
+                    const score = quizResult.score ?? 0;
+                    const strongTopics = quizResult.strong_topics ?? [];
+                    const weakTopics = quizResult.weak_topics ?? [];
+                    const feedback = quizResult.ai_feedback ?? "";
                     return (
                       <div className="space-y-5">
                         {/* Score */}
@@ -512,8 +504,8 @@ export default function LessonLearnPage({
                               <div>
                                 <h4 className="font-medium mb-2 text-sm">Strong Topics</h4>
                                 <div className="flex flex-wrap gap-1">
-                                  {strongTopics.map((t) => (
-                                    <Badge key={t} variant="default" className="text-xs">{t}</Badge>
+                                  {strongTopics.map((topic) => (
+                                    <Badge key={topic} variant="default" className="text-xs">{topic}</Badge>
                                   ))}
                                 </div>
                               </div>
@@ -522,8 +514,8 @@ export default function LessonLearnPage({
                               <div>
                                 <h4 className="font-medium mb-2 text-sm">Weak Topics</h4>
                                 <div className="flex flex-wrap gap-1">
-                                  {weakTopics.map((t) => (
-                                    <Badge key={t} variant="outline" className="text-xs">{t}</Badge>
+                                  {weakTopics.map((topic) => (
+                                    <Badge key={topic} variant="outline" className="text-xs">{topic}</Badge>
                                   ))}
                                 </div>
                               </div>
@@ -584,12 +576,12 @@ export default function LessonLearnPage({
             </CardHeader>
             <CardContent className="p-0">
               <ul className="divide-y">
-                {lessons.map((l: any, index: number) => {
-                  const isCurrent = l.id === lessonIdNum;
+                {lessons.map((courseLesson, index) => {
+                  const isCurrent = courseLesson.id === lessonIdNum;
                   return (
-                    <li key={l.id}>
+                    <li key={courseLesson.id}>
                       <Link
-                        href={`/student/courses/${uuid}/learn/${l.id}`}
+                        href={`/student/courses/${uuid}/learn/${courseLesson.id}`}
                         className={`flex items-start gap-2 px-4 py-3 text-sm transition-colors ${
                           isCurrent
                             ? "bg-primary/10 text-primary font-semibold border-l-2 border-primary"
@@ -597,7 +589,7 @@ export default function LessonLearnPage({
                         }`}
                       >
                         <span className="shrink-0 font-medium">{index + 1}.</span>
-                        <span className="line-clamp-2">{l.title}</span>
+                        <span className="line-clamp-2">{courseLesson.title}</span>
                       </Link>
                     </li>
                   );

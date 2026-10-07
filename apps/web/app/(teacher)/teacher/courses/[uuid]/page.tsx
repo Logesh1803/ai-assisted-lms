@@ -3,14 +3,13 @@
 import { use, useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { coursesApi, lessonsApi, summaryApi, quizApi, discussionApi, courseNotesApi } from "@/lib/api";
-import { formatDate } from "@/lib/utils";
+import { avatarColor, formatDate, getInitials, timeAgo } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +46,6 @@ import {
   Users,
   Sparkles,
   Loader2,
-  Play,
   CheckCircle2,
   GripVertical,
   Video,
@@ -63,6 +61,7 @@ import {
   Download,
   Clock,
 } from "lucide-react";
+import type { Lesson } from "@/lib/types";
 
 const editSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -72,21 +71,6 @@ const editSchema = z.object({
 
 type EditFormValues = z.infer<typeof editSchema>;
 
-function timeAgo(ts: any): string {
-  const m = Math.floor((Date.now() - Number(ts)) / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d`;
-  return new Date(Number(ts)).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-function getInitials(first?: string, last?: string) {
-  return `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase() || "?";
-}
-const AV_COLORS = ["bg-blue-500","bg-violet-500","bg-emerald-500","bg-orange-500","bg-pink-500","bg-teal-500","bg-rose-500","bg-indigo-500"];
-function avColor(name = "") { return AV_COLORS[name.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % AV_COLORS.length]; }
 
 export default function TeacherCourseDetailPage({
   params,
@@ -94,7 +78,6 @@ export default function TeacherCourseDetailPage({
   params: Promise<{ uuid: string }>;
 }) {
   const { uuid } = use(params);
-  const router = useRouter();
   const queryClient = useQueryClient();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteLessonId, setDeleteLessonId] = useState<number | null>(null);
@@ -105,7 +88,7 @@ export default function TeacherCourseDetailPage({
   const [replyContent, setReplyContent] = useState("");
 
   // Drag-and-drop lesson reorder state
-  const [localLessons, setLocalLessons] = useState<any[]>([]);
+  const [localLessons, setLocalLessons] = useState<Lesson[]>([]);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragNode = useRef<HTMLDivElement | null>(null);
@@ -154,7 +137,7 @@ export default function TeacherCourseDetailPage({
       queryClient.invalidateQueries({ queryKey: ["discussion-threads", uuid] });
       setReplyContent("");
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
   const pinThreadMutation = useMutation({
@@ -163,7 +146,7 @@ export default function TeacherCourseDetailPage({
       queryClient.invalidateQueries({ queryKey: ["discussion-threads", uuid] });
       queryClient.invalidateQueries({ queryKey: ["discussion-thread", activeThread] });
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
   const deleteThreadMutation = useMutation({
@@ -172,7 +155,7 @@ export default function TeacherCourseDetailPage({
       queryClient.invalidateQueries({ queryKey: ["discussion-threads", uuid] });
       setActiveThread(null);
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
   const deleteReplyMutation = useMutation({
@@ -180,15 +163,15 @@ export default function TeacherCourseDetailPage({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["discussion-thread", activeThread] });
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
-  const courseData = course as any;
+  const courseData = course;
 
-  const performanceData: any[] = (performance as any) || [];
-  const quizAttempts: any[] = (quizAttemptsData as any)?.attempts || [];
-  const threads: any[] = (threadsData as any)?.threads || [];
-  const threadDetail = activeThreadData as any;
+  const performanceData = performance ?? [];
+  const quizAttempts = quizAttemptsData?.attempts ?? [];
+  const threads = threadsData?.threads ?? [];
+  const threadDetail = activeThreadData;
   const form = useForm<EditFormValues>({
     resolver: zodResolver(editSchema),
     values: {
@@ -210,7 +193,7 @@ export default function TeacherCourseDetailPage({
       queryClient.invalidateQueries({ queryKey: ["teacher-course", uuid] });
       setEditDialogOpen(false);
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
   const statusMutation = useMutation({
@@ -220,7 +203,7 @@ export default function TeacherCourseDetailPage({
       queryClient.invalidateQueries({ queryKey: ["teacher-course", uuid] });
       queryClient.invalidateQueries({ queryKey: ["teacher-courses-list"] });
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
   const deleteLessonMutation = useMutation({
@@ -230,7 +213,7 @@ export default function TeacherCourseDetailPage({
       queryClient.invalidateQueries({ queryKey: ["teacher-course", uuid] });
       setDeleteLessonId(null);
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
   const reorderMutation = useMutation({
@@ -239,7 +222,7 @@ export default function TeacherCourseDetailPage({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teacher-course", uuid] });
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast.error(getFriendlyError(err));
       // revert to server order on failure
       queryClient.invalidateQueries({ queryKey: ["teacher-course", uuid] });
@@ -247,14 +230,14 @@ export default function TeacherCourseDetailPage({
   });
 
   // Keep localLessons in sync with server data
-  const serverLessons: any[] = (course as any)?.lessons || [];
+  const serverLessons = course?.lessons ?? [];
   useEffect(() => {
     setLocalLessons(serverLessons);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(serverLessons.map((l: any) => l.id))]);
+  }, [JSON.stringify(serverLessons.map((lesson) => lesson.id))]);
 
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
-    dragNode.current = e.currentTarget;
+  const handleDragStart = (event: React.DragEvent<HTMLDivElement>, index: number) => {
+    dragNode.current = event.currentTarget;
     setDragIndex(index);
     // slight delay so the drag ghost renders before we style the original
     requestAnimationFrame(() => {
@@ -262,13 +245,13 @@ export default function TeacherCourseDetailPage({
     });
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, index: number) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>, index: number) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
     setDragOverIndex(index);
   };
 
-  const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragEnd = () => {
     if (dragNode.current) dragNode.current.style.opacity = "1";
     dragNode.current = null;
 
@@ -292,7 +275,7 @@ export default function TeacherCourseDetailPage({
       await summaryApi.generate(uuid);
       toast.success("AI summary generated!");
       queryClient.invalidateQueries({ queryKey: ["course-summary", uuid] });
-    } catch (err: any) {
+    } catch (err) {
       if (!handleSummaryQuotaError(err, handleGenerateSummary)) toast.error(getFriendlyError(err));
     } finally {
       setGeneratingSummary(false);
@@ -449,12 +432,12 @@ export default function TeacherCourseDetailPage({
             </Card>
           ) : (
             <div className="space-y-2">
-              {localLessons.map((lesson: any, index: number) => (
+              {localLessons.map((lesson, index) => (
                 <div
                   key={lesson.id}
                   draggable
-                  onDragStart={(e) => handleDragStart(e, index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragStart={(event) => handleDragStart(event, index)}
+                  onDragOver={(event) => handleDragOver(event, index)}
                   onDragEnd={handleDragEnd}
                   onDragLeave={handleDragLeave}
                   className={`rounded-lg border bg-card transition-all ${
@@ -531,7 +514,7 @@ export default function TeacherCourseDetailPage({
                 ? "Generating..."
                 : summaryQuotaSeconds > 0
                 ? `Retry in ${summaryQuotaSeconds}s`
-                : (summaryData as any) ? "Regenerate" : "Generate Summary"}
+                : summaryData ? "Regenerate" : "Generate Summary"}
             </Button>
           </div>
 
@@ -555,17 +538,17 @@ export default function TeacherCourseDetailPage({
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-3/4" />
                 </div>
-              ) : (summaryData as any) ? (
+              ) : summaryData ? (
                 <div className="space-y-5">
                   <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <ReactMarkdown>{(summaryData as any).summary}</ReactMarkdown>
+                    <ReactMarkdown>{summaryData.summary}</ReactMarkdown>
                   </div>
-                  {(summaryData as any).key_points?.length > 0 && (
+                  {summaryData.key_points?.length > 0 && (
                     <div>
                       <h4 className="font-semibold text-sm mb-3">Key Points</h4>
                       <ul className="space-y-2">
-                        {(summaryData as any).key_points.map((point: string, i: number) => (
-                          <li key={i} className="flex items-start gap-2 text-sm">
+                        {summaryData.key_points.map((point, index) => (
+                          <li key={index} className="flex items-start gap-2 text-sm">
                             <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                             <span>{point}</span>
                           </li>
@@ -579,7 +562,7 @@ export default function TeacherCourseDetailPage({
                   <Sparkles className="h-10 w-10 text-muted-foreground mb-3 opacity-30" />
                   <p className="font-medium text-sm">No summary generated yet</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Click "Generate Summary" to create an AI summary from your lesson content
+                    Click &quot;Generate Summary&quot; to create an AI summary from your lesson content
                   </p>
                 </div>
               )}
@@ -614,7 +597,7 @@ export default function TeacherCourseDetailPage({
                       </tr>
                     </thead>
                     <tbody>
-                      {performanceData.map((item: any, index: number) => (
+                      {performanceData.map((item, index) => (
                         <tr key={item.student?.uuid || index} className="border-b last:border-0">
                           <td className="py-3 pr-4">
                             <div>
@@ -670,7 +653,7 @@ export default function TeacherCourseDetailPage({
               <p className="text-sm text-muted-foreground">
                 {quizAttempts.length} attempt{quizAttempts.length !== 1 ? "s" : ""} across all students
               </p>
-              {quizAttempts.map((attempt: any) => {
+              {quizAttempts.map((attempt) => {
                 const isExpanded = expandedAttempt === attempt.uuid;
                 const strongTopics: string[] = attempt.strong_topics || [];
                 const weakTopics: string[] = attempt.weak_topics || [];
@@ -718,9 +701,14 @@ export default function TeacherCourseDetailPage({
 
                       {/* Expanded: questions + answers + topics + AI feedback */}
                       {isExpanded && (() => {
-                        const questions: any[] = attempt.questions || [];
-                        const answers: any[] = attempt.answers || [];
-                        const answerMap = new Map(answers.map((a: any) => [String(a.questionId), a.answer]));
+                        const questions = attempt.questions ?? [];
+                        const answers = attempt.answers ?? [];
+                        const answerMap = new Map(
+                          answers.map((answer) => [
+                            String(answer.questionId),
+                            answer.answer,
+                          ]),
+                        );
 
                         return (
                           <div className="mt-4 pt-4 border-t space-y-5">
@@ -730,7 +718,7 @@ export default function TeacherCourseDetailPage({
                                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                                   Questions &amp; Answers
                                 </p>
-                                {questions.map((q: any, qi: number) => {
+                                {questions.map((q, qi) => {
                                   const studentAnswer = answerMap.get(String(q.id)) ?? "—";
                                   const isCorrect = studentAnswer === q.correct_answer;
                                   const isMCQ = q.type === "MCQ";
@@ -792,9 +780,9 @@ export default function TeacherCourseDetailPage({
                                   <div>
                                     <p className="text-xs font-medium text-muted-foreground mb-1.5">Strong Topics</p>
                                     <div className="flex flex-wrap gap-1">
-                                      {strongTopics.map((t) => (
-                                        <span key={t} className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full">
-                                          {t}
+                                      {strongTopics.map((topic) => (
+                                        <span key={topic} className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full">
+                                          {topic}
                                         </span>
                                       ))}
                                     </div>
@@ -804,9 +792,9 @@ export default function TeacherCourseDetailPage({
                                   <div>
                                     <p className="text-xs font-medium text-muted-foreground mb-1.5">Weak Topics</p>
                                     <div className="flex flex-wrap gap-1">
-                                      {weakTopics.map((t) => (
-                                        <span key={t} className="text-xs bg-red-500/10 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full">
-                                          {t}
+                                      {weakTopics.map((topic) => (
+                                        <span key={topic} className="text-xs bg-red-500/10 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full">
+                                          {topic}
                                         </span>
                                       ))}
                                     </div>
@@ -858,9 +846,9 @@ export default function TeacherCourseDetailPage({
                 </div>
               ) : (
                 <div className="divide-y">
-                  {threads.map((thread: any) => (
+                  {threads.map((thread) => (
                     <div key={thread.uuid} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setActiveThread(thread.uuid)}>
-                      <div className={`h-11 w-11 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0 ${avColor(thread.user?.first_name)}`}>
+                      <div className={`h-11 w-11 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0 ${avatarColor(thread.user?.first_name)}`}>
                         {getInitials(thread.user?.first_name, thread.user?.last_name)}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -874,7 +862,7 @@ export default function TeacherCourseDetailPage({
                           <p className="text-xs text-muted-foreground truncate">{thread.user?.first_name}: {thread.content}</p>
                           {(thread._count?.replies ?? 0) > 0 && (
                             <span className="shrink-0 h-4 min-w-[1rem] rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
-                              {thread._count.replies}
+                              {thread._count?.replies}
                             </span>
                           )}
                         </div>
@@ -892,7 +880,7 @@ export default function TeacherCourseDetailPage({
                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setActiveThread(null)}>
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 ${avColor(threadDetail.user?.first_name)}`}>
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 ${avatarColor(threadDetail.user?.first_name)}`}>
                   {getInitials(threadDetail.user?.first_name, threadDetail.user?.last_name)}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -915,7 +903,7 @@ export default function TeacherCourseDetailPage({
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {/* Original post */}
                 <div className="flex gap-2.5 group">
-                  <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5 ${avColor(threadDetail.user?.first_name)}`}>
+                  <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5 ${avatarColor(threadDetail.user?.first_name)}`}>
                     {getInitials(threadDetail.user?.first_name, threadDetail.user?.last_name)}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -935,7 +923,7 @@ export default function TeacherCourseDetailPage({
                 {(threadDetail.replies?.length ?? 0) > 0 && (
                   <div className="flex items-center gap-2 py-1">
                     <div className="flex-1 h-px bg-border" />
-                    <span className="text-[11px] text-muted-foreground">{threadDetail.replies.length} {threadDetail.replies.length === 1 ? "reply" : "replies"}</span>
+                    <span className="text-[11px] text-muted-foreground">{threadDetail.replies?.length} {threadDetail.replies?.length === 1 ? "reply" : "replies"}</span>
                     <div className="flex-1 h-px bg-border" />
                   </div>
                 )}
@@ -946,9 +934,9 @@ export default function TeacherCourseDetailPage({
                 )}
 
                 {/* Reply messages */}
-                {threadDetail.replies?.map((reply: any) => (
+                {threadDetail.replies?.map((reply) => (
                   <div key={reply.uuid} className="flex gap-2.5 group">
-                    <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5 ${avColor(reply.user?.first_name)}`}>
+                    <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5 ${avatarColor(reply.user?.first_name)}`}>
                       {getInitials(reply.user?.first_name, reply.user?.last_name)}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -975,8 +963,8 @@ export default function TeacherCourseDetailPage({
                   placeholder="Reply as teacher... (Enter to send)"
                   rows={1}
                   value={replyContent}
-                  onChange={(e) => setReplyContent(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (replyContent.trim() && !createReplyMutation.isPending) createReplyMutation.mutate(activeThread); } }}
+                  onChange={(event) => setReplyContent(event.target.value)}
+                  onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); if (replyContent.trim() && !createReplyMutation.isPending) createReplyMutation.mutate(activeThread); } }}
                   className="resize-none flex-1 min-h-[36px] max-h-24 text-sm"
                 />
                 <Button size="icon" className="h-9 w-9 shrink-0" disabled={!replyContent.trim() || createReplyMutation.isPending} onClick={() => createReplyMutation.mutate(activeThread)}>
@@ -1013,7 +1001,7 @@ export default function TeacherCourseDetailPage({
                 <div>
                   <p className="text-muted-foreground">Created</p>
                   <p className="font-medium mt-1">
-                    {courseData.createdAt ? formatDate(courseData.createdAt) : "—"}
+                    {courseData.created_at ? formatDate(courseData.created_at) : "—"}
                   </p>
                 </div>
                 <div>
@@ -1056,7 +1044,7 @@ export default function TeacherCourseDetailPage({
             <DialogTitle>Edit Course</DialogTitle>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit((v) => updateMutation.mutate(v))} className="space-y-4">
+            <form onSubmit={form.handleSubmit((values) => updateMutation.mutate(values))} className="space-y-4">
               <FormField
                 control={form.control}
                 name="title"
@@ -1150,7 +1138,7 @@ function CourseNotesTab({ courseUuid }: { courseUuid: string }) {
 
   const { data: notes = [], isLoading } = useQuery({
     queryKey: ["course-notes", courseUuid],
-    queryFn: () => courseNotesApi.getByCourse(courseUuid) as unknown as Promise<any[]>,
+    queryFn: () => courseNotesApi.getByCourse(courseUuid),
   });
 
   const uploadMutation = useMutation({
@@ -1161,7 +1149,7 @@ function CourseNotesTab({ courseUuid }: { courseUuid: string }) {
       setUploadOpen(false);
       setTitle(""); setDescription(""); setFile(null);
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
   const deleteMutation = useMutation({
@@ -1170,10 +1158,10 @@ function CourseNotesTab({ courseUuid }: { courseUuid: string }) {
       toast.success("Note deleted.");
       queryClient.invalidateQueries({ queryKey: ["course-notes", courseUuid] });
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
-  const fileIcon = (type?: string) => {
+  const fileIcon = (type?: string | null) => {
     if (!type) return <FileText className="h-4 w-4" />;
     if (type.includes("pdf")) return <FileText className="h-4 w-4 text-red-500" />;
     if (type.includes("image")) return <FileText className="h-4 w-4 text-blue-500" />;
@@ -1194,8 +1182,8 @@ function CourseNotesTab({ courseUuid }: { courseUuid: string }) {
       </div>
 
       {isLoading ? (
-        <div className="space-y-2">{[1,2].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>
-      ) : (notes as any[]).length === 0 ? (
+        <div className="space-y-2">{[1,2].map((index) => <Skeleton key={index} className="h-14 w-full" />)}</div>
+      ) : (notes ?? []).length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-14 text-center">
             <Paperclip className="h-10 w-10 text-muted-foreground mb-3 opacity-40" />
@@ -1205,24 +1193,24 @@ function CourseNotesTab({ courseUuid }: { courseUuid: string }) {
         </Card>
       ) : (
         <div className="space-y-2">
-          {(notes as any[]).map((note: any) => (
+          {(notes ?? []).map((note) => (
             <Card key={note.uuid}>
               <CardContent className="flex items-center gap-3 py-3 px-4">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-                  {fileIcon(note.fileType)}
+                  {fileIcon(note.file_type)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{note.title}</p>
                   {note.description && (
                     <p className="text-xs text-muted-foreground truncate">{note.description}</p>
                   )}
-                  {note.fileName && (
-                    <p className="text-xs text-muted-foreground">{note.fileName}</p>
+                  {note.file_name && (
+                    <p className="text-xs text-muted-foreground">{note.file_name}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  {note.fileUrl && (
-                    <a href={note.fileUrl} target="_blank" rel="noopener noreferrer">
+                  {note.file_url && (
+                    <a href={note.file_url} target="_blank" rel="noopener noreferrer">
                       <Button variant="ghost" size="icon" className="h-7 w-7">
                         <Download className="h-3.5 w-3.5" />
                       </Button>
@@ -1256,7 +1244,7 @@ function CourseNotesTab({ courseUuid }: { courseUuid: string }) {
               <Input
                 placeholder="e.g., Chapter 3 Notes, Formula Sheet"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(event) => setTitle(event.target.value)}
               />
             </div>
             <div className="space-y-1.5">
@@ -1265,7 +1253,7 @@ function CourseNotesTab({ courseUuid }: { courseUuid: string }) {
                 placeholder="Brief description of this resource..."
                 rows={2}
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(event) => setDescription(event.target.value)}
               />
             </div>
             <div className="space-y-1.5">
@@ -1280,7 +1268,7 @@ function CourseNotesTab({ courseUuid }: { courseUuid: string }) {
                     <span className="font-medium truncate max-w-[200px]">{file.name}</span>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                      onClick={(event) => { event.stopPropagation(); setFile(null); }}
                       className="text-muted-foreground hover:text-destructive"
                     >
                       <X className="h-3.5 w-3.5" />
@@ -1298,7 +1286,7 @@ function CourseNotesTab({ courseUuid }: { courseUuid: string }) {
                 type="file"
                 className="hidden"
                 accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.webp,.txt"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
               />
             </div>
             <div className="flex justify-end gap-2 pt-1">

@@ -1,5 +1,5 @@
-import { applyDecorators } from '@nestjs/common';
-import { ApiProperty } from '@nestjs/swagger';
+import { applyDecorators } from "@nestjs/common";
+import { ApiProperty } from "@nestjs/swagger";
 import {
   IsEmail,
   IsNotEmpty,
@@ -10,19 +10,23 @@ import {
   MaxLength,
   MinLength,
   Matches,
-  IsStrongPassword, IsInt, IsNumber, Min, Max,
-} from 'class-validator';
+  IsStrongPassword,
+  IsInt,
+  IsNumber,
+  Min,
+  Max,
+} from "class-validator";
 
-
-export function TokenField(example = 'dc1322c84a69636731a3d8ad5ce37d37') {
-  return applyDecorators(
-    ApiProperty({ example }),
-    IsString(),
-    IsNotEmpty(),
-  );
+export function TokenField(example = "dc1322c84a69636731a3d8ad5ce37d37") {
+  return applyDecorators(ApiProperty({ example }), IsString(), IsNotEmpty());
 }
 
-export function UserNameField(example = 'John', max = 25, type = 'First Name', requiredField = true) {
+export function UserNameField(
+  example = "John",
+  max = 25,
+  type = "First Name",
+  requiredField = true,
+) {
   const decorators = [
     ApiProperty({
       example,
@@ -41,26 +45,24 @@ export function UserNameField(example = 'John', max = 25, type = 'First Name', r
   return applyDecorators(...decorators);
 }
 
-export function StatusField () {
+export function StatusField() {
+  return applyDecorators(ApiProperty({ example: true }), IsBoolean());
+}
+
+export function EmailField() {
   return applyDecorators(
-    ApiProperty({example: true}),
-    IsBoolean(),
+    ApiProperty({ example: "example@gmail.com" }),
+    IsEmail(),
   );
 }
 
-export function EmailField (){
-  return applyDecorators(
-    ApiProperty({ example: 'example@gmail.com' }),
-    IsEmail());
-}
-
-export function PasswordField (isStrongPassword=false) {
+export function PasswordField(isStrongPassword = false) {
   const decorators = [
-    ApiProperty({ example: 'Password@123' }),
+    ApiProperty({ example: "Password@123" }),
     IsString(),
-    IsNotEmpty()
-  ]
-  if(isStrongPassword){
+    IsNotEmpty(),
+  ];
+  if (isStrongPassword) {
     decorators.push(
       IsStrongPassword({
         minLength: 6,
@@ -68,40 +70,44 @@ export function PasswordField (isStrongPassword=false) {
         minUppercase: 1,
         minNumbers: 1,
         minSymbols: 1,
-      }))
+      }),
+    );
   }
   return applyDecorators(...decorators);
 }
 
-export function OtpField  (){
-  return  applyDecorators(
-    ApiProperty({ example: '123456' }),
+export function OtpField() {
+  return applyDecorators(
+    ApiProperty({ example: "123456" }),
     IsString(),
     Length(6, 6),
   );
 }
 
-export function PhoneField(){
+export function PhoneField() {
   return applyDecorators(
     ApiProperty({
-      example: '+447700900123',
+      example: "+447700900123",
       required: false,
-      description: 'International phone number (E.164, max 15 digits)',
+      description: "International phone number (E.164, max 15 digits)",
     }),
     IsString(),
     Matches(/^\+[1-9]\d{1,14}$/, {
-      message:
-        'Phone number must be in E.164 format (max 15 digits)',
-    }))
+      message: "Phone number must be in E.164 format (max 15 digits)",
+    }),
+  );
 }
 
-export function AddressField(){
+export function AddressField() {
   return applyDecorators(
     ApiProperty({ example: "1st street, London" }),
     IsString({ message: "Address must be a valid text value." }),
     MinLength(5, { message: "Address must be at least 5 characters long." }),
     MaxLength(100, { message: "Address cannot exceed 100 characters." }),
-    Matches(/^[a-zA-Z0-9\s,./-]*$/, {message:"Address can contain only letters, numbers, spaces, comma, dot, slash and hyphen." })
+    Matches(/^[a-zA-Z0-9\s,./-]*$/, {
+      message:
+        "Address can contain only letters, numbers, spaces, comma, dot, slash and hyphen.",
+    }),
   );
 }
 
@@ -114,7 +120,7 @@ export function StringField(options?: {
   matches?: boolean;
 }) {
   const {
-    example = 'text',
+    example = "text",
     required = true,
     minLength,
     maxLength,
@@ -128,7 +134,7 @@ export function StringField(options?: {
       required,
       description,
     }),
-    IsString({ message: 'Value must be a string.' }),
+    IsString({ message: "Value must be a string." }),
   ];
 
   if (!required) {
@@ -155,14 +161,13 @@ export function StringField(options?: {
     decorators.push(
       Matches(/^[A-Za-z\d]+$/, {
         message:
-          'Only letters and numbers are allowed (no spaces or special characters).',
+          "Only letters and numbers are allowed (no spaces or special characters).",
       }),
     );
   }
 
   return applyDecorators(...decorators);
 }
-
 
 export function NumberField(options?: {
   example?: number;
@@ -189,11 +194,8 @@ export function NumberField(options?: {
       type: Number,
     }),
     integer
-      ? IsInt({ message: 'Value must be an integer.' })
-      : IsNumber(
-        {},
-        { message: 'Value must be a valid number.' },
-      ),
+      ? IsInt({ message: "Value must be an integer." })
+      : IsNumber({}, { message: "Value must be a valid number." }),
   ];
 
   if (!required) {
@@ -218,4 +220,3 @@ export function NumberField(options?: {
 
   return applyDecorators(...decorators);
 }
-

@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   Form,
   FormControl,
@@ -25,7 +24,6 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -69,7 +67,7 @@ export default function EditLessonPage({
     queryFn: () => lessonsApi.getOne(lessonIdNum),
   });
 
-  const lessonData = lesson as any;
+  const lessonData = lesson;
 
   const form = useForm<EditLessonValues>({
     resolver: zodResolver(editLessonSchema),
@@ -94,7 +92,7 @@ export default function EditLessonPage({
       queryClient.invalidateQueries({ queryKey: ["teacher-course", uuid] });
       queryClient.invalidateQueries({ queryKey: ["lesson-edit", lessonIdNum] });
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
   const deleteMutation = useMutation({
@@ -104,7 +102,7 @@ export default function EditLessonPage({
       queryClient.invalidateQueries({ queryKey: ["teacher-course", uuid] });
       router.push(`/teacher/courses/${uuid}`);
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
   const deleteVideoMutation = useMutation({
@@ -113,18 +111,18 @@ export default function EditLessonPage({
       toast.success("Video deleted.");
       queryClient.invalidateQueries({ queryKey: ["lesson-edit", lessonIdNum] });
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
-  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
     setUploadingVideo(true);
     try {
       await lessonsApi.uploadVideo(lessonIdNum, file);
       toast.success("Video uploaded successfully!");
       queryClient.invalidateQueries({ queryKey: ["lesson-edit", lessonIdNum] });
-    } catch (err: any) {
+    } catch (err) {
       toast.error(getFriendlyError(err));
     } finally {
       setUploadingVideo(false);
@@ -190,7 +188,7 @@ export default function EditLessonPage({
             <CardContent className="pt-6">
               <Form {...form}>
                 <form
-                  onSubmit={form.handleSubmit((v) => updateMutation.mutate(v))}
+                  onSubmit={form.handleSubmit((values) => updateMutation.mutate(values))}
                   className="space-y-6"
                 >
                   <FormField
@@ -278,7 +276,7 @@ export default function EditLessonPage({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {(lessonData.videoUrl || lessonData.video_url) ? (
+              {lessonData.video_url ? (
                 <div className="space-y-4">
                   <div className="rounded-lg overflow-hidden bg-black aspect-video">
                     <video

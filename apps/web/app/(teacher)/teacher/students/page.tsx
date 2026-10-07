@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { coursesApi, enrollmentsApi } from "@/lib/api";
-import { formatDate } from "@/lib/utils";
+import { formatDate, getInitials } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,10 +17,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, ChevronDown, ChevronUp, BookOpen, Trophy, CheckCircle2, TrendingUp } from "lucide-react";
+import { Users, ChevronDown, ChevronUp, BookOpen, CheckCircle2, TrendingUp } from "lucide-react";
 
 // ── Avatar helpers ────────────────────────────────────────────────────────────
-const AV_COLORS = [
+// This page draws avatars as gradients rather than the flat colours used
+// elsewhere, so it keeps its own palette. The initials come from the shared
+// helper, since those are identical everywhere.
+const AVATAR_GRADIENTS = [
   "from-violet-500 to-purple-600",
   "from-blue-500 to-indigo-600",
   "from-emerald-500 to-teal-600",
@@ -28,12 +31,14 @@ const AV_COLORS = [
   "from-pink-500 to-rose-600",
   "from-cyan-500 to-sky-600",
 ];
-function avColor(name = "") {
-  const i = name.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % AV_COLORS.length;
-  return AV_COLORS[i];
-}
-function initials(first = "", last = "") {
-  return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase() || "?";
+
+/** Always gives the same name the same gradient, so a student looks consistent. */
+function avatarGradient(name = "") {
+  let characterSum = 0;
+  for (let index = 0; index < name.length; index++) {
+    characterSum += name.charCodeAt(index);
+  }
+  return AVATAR_GRADIENTS[characterSum % AVATAR_GRADIENTS.length];
 }
 
 function StudentsContent() {
@@ -47,7 +52,7 @@ function StudentsContent() {
     queryFn: () => coursesApi.getMine({ limit: 100 }),
   });
 
-  const courses: any[] = (coursesData as any)?.courses || coursesData || [];
+  const courses = coursesData?.courses ?? [];
 
   const { data: enrollmentsData, isLoading: enrollmentsLoading } = useQuery({
     queryKey: ["course-enrollments", selectedCourse],
@@ -55,16 +60,23 @@ function StudentsContent() {
     enabled: !!selectedCourse,
   });
 
-  const enrollments: any[] = (enrollmentsData as any)?.enrollments || (Array.isArray(enrollmentsData) ? enrollmentsData : []);
+  const enrollments = enrollmentsData?.enrollments ?? [];
 
   const toggleStudent = (uuid: string) => {
     setExpandedStudent((prev) => (prev === uuid ? null : uuid));
   };
 
   // Stats derived from enrollments
-  const completedCount = enrollments.filter((e: any) => e.status === "COMPLETED").length;
+  const completedCount = enrollments.filter(
+    (enrollment) => enrollment.status === "COMPLETED",
+  ).length;
   const avgProgress = enrollments.length
-    ? Math.round(enrollments.reduce((acc: number, e: any) => acc + (e.progressPercent || e.progress || 0), 0) / enrollments.length)
+    ? Math.round(
+        enrollments.reduce(
+          (total, enrollment) => total + (enrollment.progress || 0),
+          0,
+        ) / enrollments.length,
+      )
     : 0;
 
   return (
@@ -83,7 +95,7 @@ function StudentsContent() {
                     <SelectValue placeholder="Choose a course to view students..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {courses.map((course: any) => (
+                    {courses.map((course) => (
                       <SelectItem key={course.uuid} value={course.uuid}>
                         <span className="flex items-center gap-2">
                           {course.title}
@@ -143,8 +155,8 @@ function StudentsContent() {
         </Card>
       ) : enrollmentsLoading ? (
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <Card key={i}>
+          {[1, 2, 3].map((index) => (
+            <Card key={index}>
               <CardContent className="pt-4 pb-4">
                 <div className="flex items-center gap-4">
                   <Skeleton className="h-11 w-11 rounded-full shrink-0" />
@@ -173,13 +185,15 @@ function StudentsContent() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {enrollments.map((enrollment: any) => {
-            const student = enrollment.student || enrollment.user || {};
-            const firstName = student.firstName || student.first_name || "";
-            const lastName = student.lastName || student.last_name || "";
+          {enrollments.map((enrollment) => {
+            const student = enrollment.student;
+            const firstName = student?.first_name ?? "";
+            const lastName = student?.last_name ?? "";
             const isExpanded = expandedStudent === enrollment.uuid;
-            const progress = enrollment.progressPercent || enrollment.progress || 0;
-            const lessonProgress: any[] = enrollment.lesson_progress || enrollment.lessonProgress || [];
+            const progress = enrollment.progress || 0;
+            // This endpoint does not include per-lesson progress, so the
+            // panel below shows its empty state. See the note in the README.
+            const lessonProgress = enrollment.lesson_progress ?? [];
             const isCompleted = enrollment.status === "COMPLETED";
 
             return (
@@ -187,8 +201,8 @@ function StudentsContent() {
                 <CardContent className="pt-4 pb-4">
                   <div className="flex items-center gap-4">
                     {/* Avatar */}
-                    <div className={`h-11 w-11 rounded-full bg-gradient-to-br ${avColor(firstName)} flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-sm`}>
-                      {initials(firstName, lastName)}
+                    <div className={`h-11 w-11 rounded-full bg-gradient-to-br ${avatarGradient(firstName)} flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-sm`}>
+                      {getInitials(firstName, lastName)}
                     </div>
 
                     {/* Info */}
@@ -206,21 +220,15 @@ function StudentsContent() {
                           ) : null}
                           {isCompleted ? "Completed" : enrollment.status || "In Progress"}
                         </Badge>
-                        {enrollment.lastQuizScore != null && (
-                          <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-medium">
-                            <Trophy className="h-3 w-3" />
-                            {enrollment.lastQuizScore}%
-                          </span>
-                        )}
                       </div>
-                      <p className="text-xs text-muted-foreground mb-2">{student.email || "—"}</p>
+                      <p className="text-xs text-muted-foreground mb-2">{student?.email || "—"}</p>
                       <div className="flex items-center gap-2 max-w-xs">
                         <Progress value={progress} className="h-1.5 flex-1" />
                         <span className="text-xs font-medium shrink-0 w-8 text-right">{Math.round(progress)}%</span>
                       </div>
-                      {enrollment.createdAt && (
+                      {enrollment.enrolled_at && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          Joined {formatDate(enrollment.createdAt)}
+                          Joined {formatDate(enrollment.enrolled_at)}
                         </p>
                       )}
                     </div>
@@ -248,21 +256,21 @@ function StudentsContent() {
                         <p className="text-sm text-muted-foreground">No lesson progress recorded.</p>
                       ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {lessonProgress.map((lp: any) => (
+                          {lessonProgress.map((lp) => (
                             <div
-                              key={lp.lessonId || lp.id}
+                              key={lp.lesson_id}
                               className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/50 border text-sm gap-2"
                             >
                               <span className="truncate flex-1 text-xs font-medium">
-                                {lp.lesson?.title || `Lesson ${lp.lessonId}`}
+                                {lp.lesson?.title || `Lesson ${lp.lesson_id}`}
                               </span>
-                              {lp.isCompleted ? (
+                              {lp.is_completed ? (
                                 <Badge variant="default" className="text-xs shrink-0">
                                   <CheckCircle2 className="h-3 w-3 mr-1" />Done
                                 </Badge>
                               ) : (
                                 <span className="text-xs text-muted-foreground shrink-0">
-                                  {lp.watchTime ? `${Math.round(lp.watchTime / 60)}m watched` : "Not started"}
+                                  {lp.watch_time ? `${Math.round(lp.watch_time / 60)}m watched` : "Not started"}
                                 </span>
                               )}
                             </div>
@@ -293,8 +301,8 @@ export default function StudentsPage() {
       <Suspense
         fallback={
           <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <Card key={i}>
+            {[1, 2, 3].map((index) => (
+              <Card key={index}>
                 <CardContent className="pt-4 pb-4">
                   <div className="flex items-center gap-4">
                     <Skeleton className="h-11 w-11 rounded-full shrink-0" />

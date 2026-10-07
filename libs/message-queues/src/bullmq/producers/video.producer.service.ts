@@ -39,8 +39,9 @@ export class VideoProducerService {
       );
       this.logger.log(`Dispatched ${VIDEO_JOBS.PROCESS_VIDEO} for lesson ${data.lessonId}, job id: ${id}`);
       return id;
-    } catch (error: any) {
-      throw new Error(error);
+    } catch (error) {
+      this.logger.error(`Failed to dispatch ${VIDEO_JOBS.PROCESS_VIDEO}`, error);
+      throw error;
     }
   }
 }

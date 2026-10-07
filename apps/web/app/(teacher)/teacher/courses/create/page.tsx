@@ -70,12 +70,12 @@ export default function CreateCoursePage() {
   };
 
   const removeTag = (tag: string) => {
-    setTags((prev) => prev.filter((t) => t !== tag));
+    setTags((prev) => prev.filter((existing) => existing !== tag));
   };
 
-  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
+  const handleTagKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter" || event.key === ",") {
+      event.preventDefault();
       addTag(tagInput);
     }
   };
@@ -89,10 +89,10 @@ export default function CreateCoursePage() {
         thumbnail: values.thumbnail || undefined,
         tags: tags.length > 0 ? tags : undefined,
       });
-      const courseData = result as any;
+      const courseData = result;
       toast.success("Course created successfully!");
       router.push(`/teacher/courses/${courseData.uuid || courseData.id}`);
-    } catch (err: any) {
+    } catch (err) {
       toast.error(getFriendlyError(err));
     } finally {
       setIsLoading(false);
@@ -108,7 +108,7 @@ export default function CreateCoursePage() {
   };
 
   const removeSyllabusTopic = (topic: string) => {
-    setSyllabusTopics((prev) => prev.filter((t) => t !== topic));
+    setSyllabusTopics((prev) => prev.filter((existing) => existing !== topic));
   };
 
   const onSubmitAI = async () => {
@@ -122,10 +122,10 @@ export default function CreateCoursePage() {
         aiPrompt.trim(),
         syllabusTopics.length > 0 ? syllabusTopics : undefined,
       );
-      const courseData = result as any;
+      const courseData = result;
       toast.success(`Course "${courseData.title}" created with ${courseData.lessons?.length ?? 0} lessons!`);
       router.push(`/teacher/courses/${courseData.uuid || courseData.id}`);
-    } catch (err: any) {
+    } catch (err) {
       if (!handleQuotaError(err, onSubmitAI)) toast.error(getFriendlyError(err));
     } finally {
       setIsLoading(false);
@@ -184,7 +184,7 @@ export default function CreateCoursePage() {
                 placeholder={`e.g., "A beginner-friendly Python course covering variables, loops, functions, and basic data structures. Aimed at students with no programming experience."`}
                 rows={4}
                 value={aiPrompt}
-                onChange={(e) => setAiPrompt(e.target.value)}
+                onChange={(event) => setAiPrompt(event.target.value)}
                 disabled={isLoading}
                 className="resize-none"
               />
@@ -204,8 +204,8 @@ export default function CreateCoursePage() {
                   className="flex-1 h-9 rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-ring"
                   placeholder="e.g., Quadratic Equations, Integration..."
                   value={syllabusInput}
-                  onChange={(e) => setSyllabusInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSyllabusTopic(); } }}
+                  onChange={(event) => setSyllabusInput(event.target.value)}
+                  onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addSyllabusTopic(); } }}
                   disabled={isLoading}
                 />
                 <Button type="button" variant="outline" size="sm" onClick={addSyllabusTopic} disabled={isLoading}>
@@ -214,8 +214,8 @@ export default function CreateCoursePage() {
               </div>
               {syllabusTopics.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 p-2 border rounded-md bg-muted/30">
-                  {syllabusTopics.map((topic, i) => (
-                    <span key={i} className="flex items-center gap-1 bg-background border rounded-md px-2 py-0.5 text-xs">
+                  {syllabusTopics.map((topic, index) => (
+                    <span key={index} className="flex items-center gap-1 bg-background border rounded-md px-2 py-0.5 text-xs">
                       <GripVertical className="h-3 w-3 text-muted-foreground" />
                       {topic}
                       <button type="button" onClick={() => removeSyllabusTopic(topic)} className="hover:text-destructive ml-0.5">
@@ -354,7 +354,7 @@ export default function CreateCoursePage() {
                     <input
                       type="text"
                       value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
+                      onChange={(event) => setTagInput(event.target.value)}
                       onKeyDown={handleTagKeyDown}
                       onBlur={() => tagInput && addTag(tagInput)}
                       placeholder={tags.length === 0 ? "Type tag and press Enter or comma..." : "Add more..."}

@@ -72,18 +72,26 @@ export default function PerformancePage() {
     queryFn: () => enrollmentsApi.getMyEnrollments({ limit: 50 }),
   });
 
-  const enrollments: any[] = (enrollmentsData as any)?.enrollments ?? enrollmentsData ?? [];
-  const allAttempts: any[] = enrollments.flatMap((e: any) =>
-    (e.quiz_attempts ?? e.quizAttempts ?? []).map((a: any) => ({ ...a, courseName: e.course?.title }))
+  const enrollments = enrollmentsData?.enrollments ?? [];
+  const allAttempts = enrollments.flatMap((enrollment) =>
+    (enrollment.quiz_attempts ?? []).map((attempt) => ({
+      ...attempt,
+      courseName: enrollment.course?.title,
+    })),
   );
 
-  const totalCourses    = enrollments.length;
-  const completedCourses = enrollments.filter((e: any) => e.status === "COMPLETED").length;
-  const totalQuizzes    = allAttempts.length;
-  const failedAttempts  = allAttempts.filter((a) => (a.score ?? a.scorePercent ?? 0) < PASS_THRESHOLD).length;
-  const avgScore        = totalQuizzes > 0
-    ? Math.round(allAttempts.reduce((acc, a) => acc + (a.score ?? a.scorePercent ?? 0), 0) / totalQuizzes)
-    : 0;
+  const totalCourses = enrollments.length;
+  const totalQuizzes = allAttempts.length;
+  const failedAttempts = allAttempts.filter(
+    (attempt) => attempt.score < PASS_THRESHOLD,
+  ).length;
+  const avgScore =
+    totalQuizzes > 0
+      ? Math.round(
+          allAttempts.reduce((total, attempt) => total + attempt.score, 0) /
+            totalQuizzes,
+        )
+      : 0;
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
@@ -97,7 +105,7 @@ export default function PerformancePage() {
       {/* ── KPI strip ──────────────────────────────────────────────── */}
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-2xl" />)}
+          {[0, 1, 2, 3].map((index) => <Skeleton key={index} className="h-20 rounded-2xl" />)}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -114,7 +122,7 @@ export default function PerformancePage() {
 
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[0, 1, 2].map((i) => <Skeleton key={i} className="h-48 rounded-2xl" />)}
+            {[0, 1, 2].map((index) => <Skeleton key={index} className="h-48 rounded-2xl" />)}
           </div>
         ) : enrollments.length === 0 ? (
           <div
@@ -126,10 +134,10 @@ export default function PerformancePage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {enrollments.map((enrollment: any) => {
-              const progress    = enrollment.progressPercent ?? enrollment.progress ?? 0;
+            {enrollments.map((enrollment) => {
+              const progress = enrollment.progress ?? 0;
               const isCompleted = enrollment.status === "COMPLETED";
-              const course      = enrollment.course ?? {};
+              const course = enrollment.course;
 
               return (
                 <div
@@ -139,7 +147,7 @@ export default function PerformancePage() {
                 >
                   {/* Thumbnail */}
                   <div className="relative h-28 overflow-hidden">
-                    {course.thumbnail ? (
+                    {course?.thumbnail ? (
                       <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full" style={{ background: "var(--gradient-brand)" }} />
@@ -147,7 +155,7 @@ export default function PerformancePage() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 px-4 py-3 flex items-end justify-between gap-2">
                       <h3 className="font-semibold text-sm text-white truncate">
-                        {course.title ?? "Untitled Course"}
+                        {course?.title ?? "Untitled Course"}
                       </h3>
                       <Badge variant={isCompleted ? "success" : "secondary"} className="text-[10px] shrink-0">
                         {isCompleted && <CheckCircle2 className="h-3 w-3" />}
@@ -162,8 +170,8 @@ export default function PerformancePage() {
                       <span className="font-semibold">{Math.round(progress)}%</span>
                     </div>
                     <Progress value={progress} className="h-1.5" />
-                    {enrollment.createdAt && (
-                      <p className="text-xs text-muted-foreground mt-1">Enrolled {formatDate(enrollment.createdAt)}</p>
+                    {enrollment.enrolled_at && (
+                      <p className="text-xs text-muted-foreground mt-1">Enrolled {formatDate(enrollment.enrolled_at)}</p>
                     )}
                   </div>
                 </div>
@@ -185,16 +193,16 @@ export default function PerformancePage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--muted)" }}>
-                    {["Course", "Score", "Status", "Strong Topics", "Weak Topics", "Date"].map((h) => (
-                      <th key={h} className="text-left px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        {h}
+                    {["Course", "Score", "Status", "Strong Topics", "Weak Topics", "Date"].map((header) => (
+                      <th key={header} className="text-left px-5 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        {header}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {allAttempts.map((attempt: any) => {
-                    const score = attempt.score ?? attempt.scorePercent ?? 0;
+                  {allAttempts.map((attempt) => {
+                    const score = attempt.score;
                     const passed = score >= PASS_THRESHOLD;
 
                     return (
@@ -202,11 +210,11 @@ export default function PerformancePage() {
                         key={attempt.uuid}
                         className="transition-colors"
                         style={{ borderBottom: "1px solid var(--border)" }}
-                        onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = "var(--muted)"}
-                        onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.background = "transparent"}
+                        onMouseEnter={(event) => (event.currentTarget as HTMLElement).style.background = "var(--muted)"}
+                        onMouseLeave={(event) => (event.currentTarget as HTMLElement).style.background = "transparent"}
                       >
                         <td className="px-5 py-4 font-medium truncate max-w-[180px]">
-                          {attempt.courseName ?? attempt.course?.title ?? "—"}
+                          {attempt.courseName ?? "—"}
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
@@ -221,20 +229,20 @@ export default function PerformancePage() {
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex flex-wrap gap-1">
-                            {(attempt.strong_topics ?? attempt.strongTopics ?? []).slice(0, 2).map((t: string) => (
-                              <Badge key={t} variant="success" className="text-[10px] px-2">{t}</Badge>
+                            {(attempt.strong_topics ?? []).slice(0, 2).map((topic) => (
+                              <Badge key={topic} variant="success" className="text-[10px] px-2">{topic}</Badge>
                             ))}
                           </div>
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex flex-wrap gap-1">
-                            {(attempt.weak_topics ?? attempt.weakTopics ?? []).slice(0, 2).map((t: string) => (
-                              <Badge key={t} variant="destructive" className="text-[10px] px-2">{t}</Badge>
+                            {(attempt.weak_topics ?? []).slice(0, 2).map((topic) => (
+                              <Badge key={topic} variant="destructive" className="text-[10px] px-2">{topic}</Badge>
                             ))}
                           </div>
                         </td>
                         <td className="px-5 py-4 text-muted-foreground text-xs">
-                          {attempt.created_at ?? attempt.createdAt ? formatDate(attempt.created_at ?? attempt.createdAt) : "—"}
+                          {attempt.created_at ? formatDate(attempt.created_at) : "—"}
                         </td>
                       </tr>
                     );

@@ -10,18 +10,19 @@ import {
   Query,
   Request,
   UseGuards,
-} from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CourseService } from './course.service';
-import { CreateCourseDto } from './dto/create-course.dto';
-import { UpdateCourseDto } from './dto/update-course.dto';
-import { JwtAuthGuard } from '@/common/guard/jwt-auth.guard';
-import { CourseStatus } from '@thinkbloom/data-sources';
+} from "@nestjs/common";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
+import { CourseService } from "./course.service";
+import { CreateCourseDto } from "./dto/create-course.dto";
+import { UpdateCourseDto } from "./dto/update-course.dto";
+import { QueryCourseDto, QueryMyCourseDto } from "./dto/query-course.dto";
+import { JwtAuthGuard } from "@/common/guard/jwt-auth.guard";
+import { CourseStatus } from "@thinkbloom/data-sources";
 
-@ApiTags('Courses')
+@ApiTags("Courses")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('courses')
+@Controller("courses")
 export class CourseController {
   constructor(private readonly courseService: CourseService) {}
 
@@ -32,10 +33,10 @@ export class CourseController {
   }
 
   // POST /courses/generate-from-prompt — AI course generation
-  @Post('generate-from-prompt')
+  @Post("generate-from-prompt")
   generateFromPrompt(
-    @Body('prompt') prompt: string,
-    @Body('syllabus') syllabus: string[] | undefined,
+    @Body("prompt") prompt: string,
+    @Body("syllabus") syllabus: string[] | undefined,
     @Request() req,
   ) {
     return this.courseService.generateFromPrompt(prompt, req.user.id, syllabus);
@@ -43,26 +44,26 @@ export class CourseController {
 
   // GET /courses — all published courses (student browse)
   @Get()
-  findAll(@Query() query: any) {
+  findAll(@Query() query: QueryCourseDto) {
     return this.courseService.findAll(query);
   }
 
   // GET /courses/mine — teacher's own courses
-  @Get('mine')
-  findMyCourses(@Request() req, @Query() query: any) {
+  @Get("mine")
+  findMyCourses(@Request() req, @Query() query: QueryMyCourseDto) {
     return this.courseService.findMyCourses(req.user.id, query);
   }
 
   // GET /courses/:uuid — single course detail
-  @Get(':uuid')
-  findOne(@Param('uuid') uuid: string, @Request() req) {
+  @Get(":uuid")
+  findOne(@Param("uuid") uuid: string, @Request() req) {
     return this.courseService.findOne(uuid, req.user.id);
   }
 
   // PUT /courses/:uuid — update course
-  @Put(':uuid')
+  @Put(":uuid")
   update(
-    @Param('uuid') uuid: string,
+    @Param("uuid") uuid: string,
     @Body() dto: UpdateCourseDto,
     @Request() req,
   ) {
@@ -70,24 +71,24 @@ export class CourseController {
   }
 
   // PATCH /courses/:uuid/status — publish/archive
-  @Patch(':uuid/status')
+  @Patch(":uuid/status")
   changeStatus(
-    @Param('uuid') uuid: string,
-    @Body('status') status: CourseStatus,
+    @Param("uuid") uuid: string,
+    @Body("status") status: CourseStatus,
     @Request() req,
   ) {
     return this.courseService.changeStatus(uuid, status, req.user.id);
   }
 
   // DELETE /courses/:uuid
-  @Delete(':uuid')
-  remove(@Param('uuid') uuid: string, @Request() req) {
+  @Delete(":uuid")
+  remove(@Param("uuid") uuid: string, @Request() req) {
     return this.courseService.remove(uuid, req.user.id);
   }
 
   // GET /courses/:uuid/performance — student performance (teacher)
-  @Get(':uuid/performance')
-  getStudentPerformance(@Param('uuid') uuid: string, @Request() req) {
+  @Get(":uuid/performance")
+  getStudentPerformance(@Param("uuid") uuid: string, @Request() req) {
     return this.courseService.getStudentPerformance(uuid, req.user.id);
   }
 }

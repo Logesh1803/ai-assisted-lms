@@ -19,23 +19,8 @@ import {
   BookOpen, Lock, Play, Users, Tag, CheckCircle2, Loader2, Sparkles,
   ChevronRight, MessageSquare, Pin, Trash2, Send, Plus, ArrowLeft,
 } from "lucide-react";
+import { avatarColor, getInitials, timeAgo } from "@/lib/utils";
 
-function timeAgo(ts: any): string {
-  const ms = Date.now() - Number(ts);
-  const m = Math.floor(ms / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d`;
-  return new Date(Number(ts)).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-function getInitials(first?: string, last?: string) {
-  return `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase() || "?";
-}
-const AV_COLORS = ["bg-blue-500","bg-violet-500","bg-emerald-500","bg-orange-500","bg-pink-500","bg-teal-500","bg-rose-500","bg-indigo-500"];
-function avColor(name = "") { return AV_COLORS[name.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % AV_COLORS.length]; }
 
 export default function CourseDetailPage({ params }: { params: Promise<{ uuid: string }> }) {
   const { uuid } = use(params);
@@ -64,8 +49,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
     retry: false,
   });
 
-  const courseData = course as any;
-  const isEnrolled = courseData?.isEnrolled;
+  const isEnrolled = course?.isEnrolled;
 
   const { data: threadsData, isLoading: threadsLoading } = useQuery({
     queryKey: ["discussion-threads", uuid],
@@ -86,7 +70,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
       queryClient.invalidateQueries({ queryKey: ["course", uuid] });
       queryClient.invalidateQueries({ queryKey: ["my-enrollments"] });
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
     onSettled: () => setEnrolling(false),
   });
 
@@ -99,7 +83,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
       setThreadTitle("");
       setThreadContent("");
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
   const createReplyMutation = useMutation({
@@ -110,7 +94,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
       queryClient.invalidateQueries({ queryKey: ["discussion-threads", uuid] });
       setReplyContent("");
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
   const deleteThreadMutation = useMutation({
@@ -119,7 +103,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
       queryClient.invalidateQueries({ queryKey: ["discussion-threads", uuid] });
       if (activeThread) setActiveThread(null);
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
   const deleteReplyMutation = useMutation({
@@ -127,16 +111,16 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["discussion-thread", activeThread] });
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
   const generateNotesMutation = useMutation({
     mutationFn: () => summaryApi.generateStudentNotes(uuid),
-    onSuccess: (data: any) => {
+    onSuccess: (data) => {
       setStudentNotes(data?.notes ?? "");
       toast.success("Notes generated!");
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
   if (isLoading) {
@@ -167,11 +151,11 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
     );
   }
 
-  const lessons: any[] = courseData.lessons || [];
-  const summaryData = summary as any;
-  const threads: any[] = (threadsData as any)?.threads || [];
-  const threadDetail = activeThreadData as any;
-  const progress = courseData.enrollmentProgress ?? 0;
+  const lessons = course.lessons ?? [];
+  const summaryData = summary;
+  const threads = threadsData?.threads ?? [];
+  const threadDetail = activeThreadData;
+  const progress = course.enrollmentProgress ?? 0;
 
   return (
     <div className="space-y-6">
@@ -179,22 +163,22 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
       <div className="relative rounded-xl overflow-hidden bg-muted border p-6 md:p-10">
         <div className="max-w-2xl">
           <div className="flex items-center gap-2 mb-3">
-            <Badge variant="secondary">{courseData.status}</Badge>
-            {courseData.tags?.map((tag: string) => (
+            <Badge variant="secondary">{course.status}</Badge>
+            {course.tags?.map((tag: string) => (
               <Badge key={tag} variant="outline" className="text-xs">
                 <Tag className="h-2.5 w-2.5 mr-1" />{tag}
               </Badge>
             ))}
           </div>
-          <h1 className="text-3xl font-bold mb-3">{courseData.title}</h1>
-          {courseData.description && (
-            <p className="text-muted-foreground text-lg leading-relaxed">{courseData.description}</p>
+          <h1 className="text-3xl font-bold mb-3">{course.title}</h1>
+          {course.description && (
+            <p className="text-muted-foreground text-lg leading-relaxed">{course.description}</p>
           )}
-          {courseData.teacher && (
+          {course.teacher && (
             <p className="mt-4 text-sm text-muted-foreground">
               Taught by{" "}
               <span className="font-medium text-foreground">
-                {courseData.teacher.firstName} {courseData.teacher.lastName || ""}
+                {course.teacher.first_name} {course.teacher.last_name || ""}
               </span>
             </p>
           )}
@@ -203,7 +187,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
               <BookOpen className="h-4 w-4" />{lessons.length} lessons
             </span>
             <span className="flex items-center gap-1.5">
-              <Users className="h-4 w-4" />{courseData._count?.enrollments || 0} students
+              <Users className="h-4 w-4" />{course._count?.enrollments || 0} students
             </span>
           </div>
         </div>
@@ -245,8 +229,8 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
                       <div>
                         <h4 className="font-semibold mb-2">Key Points</h4>
                         <ul className="space-y-2">
-                          {summaryData.key_points.map((point: string, i: number) => (
-                            <li key={i} className="flex items-start gap-2 text-sm">
+                          {summaryData.key_points.map((point, index) => (
+                            <li key={index} className="flex items-start gap-2 text-sm">
                               <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                               <span>{point}</span>
                             </li>
@@ -264,11 +248,11 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
                   </CardContent>
                 </Card>
               )}
-              {courseData.description && (
+              {course.description && (
                 <Card>
                   <CardHeader><CardTitle className="text-base">About This Course</CardTitle></CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground leading-relaxed">{courseData.description}</p>
+                    <p className="text-muted-foreground leading-relaxed">{course.description}</p>
                   </CardContent>
                 </Card>
               )}
@@ -282,7 +266,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
                     <p className="text-center text-muted-foreground py-8">No lessons yet.</p>
                   ) : (
                     <ul className="space-y-2">
-                      {lessons.map((lesson: any, index: number) => (
+                      {lessons.map((lesson, index) => (
                         <li key={lesson.id}>
                           <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${isEnrolled ? "hover:bg-accent cursor-pointer" : "opacity-70"}`}>
                             <div className="flex items-center gap-3">
@@ -335,8 +319,8 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
                         <div>
                           <h4 className="font-semibold mb-3">Key Takeaways</h4>
                           <ul className="space-y-2">
-                            {summaryData.key_points.map((point: string, i: number) => (
-                              <li key={i} className="flex items-start gap-2 text-sm">
+                            {summaryData.key_points.map((point, index) => (
+                              <li key={index} className="flex items-start gap-2 text-sm">
                                 <CheckCircle2 className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                                 <span>{point}</span>
                               </li>
@@ -407,8 +391,8 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
                     {/* New thread form */}
                     {showNewThread && (
                       <div className="px-4 py-3 border-b bg-muted/20 space-y-2">
-                        <Input autoFocus placeholder="Thread title..." value={threadTitle} onChange={(e) => setThreadTitle(e.target.value)} />
-                        <Textarea placeholder="What's on your mind?" rows={2} value={threadContent} onChange={(e) => setThreadContent(e.target.value)} className="resize-none text-sm" />
+                        <Input autoFocus placeholder="Thread title..." value={threadTitle} onChange={(event) => setThreadTitle(event.target.value)} />
+                        <Textarea placeholder="What's on your mind?" rows={2} value={threadContent} onChange={(event) => setThreadContent(event.target.value)} className="resize-none text-sm" />
                         <div className="flex gap-2 justify-end">
                           <Button variant="ghost" size="sm" onClick={() => { setShowNewThread(false); setThreadTitle(""); setThreadContent(""); }}>Cancel</Button>
                           <Button size="sm" disabled={!threadTitle.trim() || !threadContent.trim() || createThreadMutation.isPending} onClick={() => createThreadMutation.mutate()}>
@@ -420,7 +404,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
 
                     {/* Thread rows */}
                     {threadsLoading ? (
-                      <div className="divide-y">{[1,2,3].map(i => <div key={i} className="flex gap-3 p-4"><Skeleton className="h-11 w-11 rounded-full shrink-0" /><div className="flex-1 space-y-2"><Skeleton className="h-3 w-3/4" /><Skeleton className="h-3 w-1/2" /></div></div>)}</div>
+                      <div className="divide-y">{[1,2,3].map((index) => <div key={index} className="flex gap-3 p-4"><Skeleton className="h-11 w-11 rounded-full shrink-0" /><div className="flex-1 space-y-2"><Skeleton className="h-3 w-3/4" /><Skeleton className="h-3 w-1/2" /></div></div>)}</div>
                     ) : threads.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                         <MessageSquare className="h-10 w-10 mb-3 opacity-20" />
@@ -429,9 +413,9 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
                       </div>
                     ) : (
                       <div className="divide-y">
-                        {threads.map((thread: any) => (
+                        {threads.map((thread) => (
                           <div key={thread.uuid} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setActiveThread(thread.uuid)}>
-                            <div className={`h-11 w-11 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0 ${avColor(thread.user?.first_name)}`}>
+                            <div className={`h-11 w-11 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0 ${avatarColor(thread.user?.first_name)}`}>
                               {getInitials(thread.user?.first_name, thread.user?.last_name)}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -446,7 +430,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
                                 <p className="text-xs text-muted-foreground truncate">{thread.content}</p>
                                 {(thread._count?.replies ?? 0) > 0 && (
                                   <span className="shrink-0 h-4 min-w-[1rem] rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
-                                    {thread._count.replies}
+                                    {thread._count?.replies}
                                   </span>
                                 )}
                               </div>
@@ -464,7 +448,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
                       <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setActiveThread(null)}>
                         <ArrowLeft className="h-4 w-4" />
                       </Button>
-                      <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 ${avColor(threadDetail.user?.first_name)}`}>
+                      <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 ${avatarColor(threadDetail.user?.first_name)}`}>
                         {getInitials(threadDetail.user?.first_name, threadDetail.user?.last_name)}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -483,7 +467,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
                     <div className="flex-1 overflow-y-auto p-4 space-y-4">
                       {/* Original post */}
                       <div className="flex gap-2.5 group">
-                        <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5 ${avColor(threadDetail.user?.first_name)}`}>
+                        <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5 ${avatarColor(threadDetail.user?.first_name)}`}>
                           {getInitials(threadDetail.user?.first_name, threadDetail.user?.last_name)}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -503,7 +487,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
                       {(threadDetail.replies?.length ?? 0) > 0 && (
                         <div className="flex items-center gap-2 py-1">
                           <div className="flex-1 h-px bg-border" />
-                          <span className="text-[11px] text-muted-foreground">{threadDetail.replies.length} {threadDetail.replies.length === 1 ? "reply" : "replies"}</span>
+                          <span className="text-[11px] text-muted-foreground">{threadDetail.replies?.length} {threadDetail.replies?.length === 1 ? "reply" : "replies"}</span>
                           <div className="flex-1 h-px bg-border" />
                         </div>
                       )}
@@ -514,9 +498,9 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
                       )}
 
                       {/* Reply messages */}
-                      {threadDetail.replies?.map((reply: any) => (
+                      {threadDetail.replies?.map((reply) => (
                         <div key={reply.uuid} className="flex gap-2.5 group">
-                          <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5 ${avColor(reply.user?.first_name)}`}>
+                          <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5 ${avatarColor(reply.user?.first_name)}`}>
                             {getInitials(reply.user?.first_name, reply.user?.last_name)}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -543,8 +527,8 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
                         placeholder="Type a message... (Enter to send)"
                         rows={1}
                         value={replyContent}
-                        onChange={(e) => setReplyContent(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (replyContent.trim() && !createReplyMutation.isPending) createReplyMutation.mutate(activeThread); } }}
+                        onChange={(event) => setReplyContent(event.target.value)}
+                        onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); if (replyContent.trim() && !createReplyMutation.isPending) createReplyMutation.mutate(activeThread); } }}
                         className="resize-none flex-1 min-h-[36px] max-h-24 text-sm"
                       />
                       <Button size="icon" className="h-9 w-9 shrink-0" disabled={!replyContent.trim() || createReplyMutation.isPending} onClick={() => createReplyMutation.mutate(activeThread)}>
@@ -625,13 +609,13 @@ export default function CourseDetailPage({ params }: { params: Promise<{ uuid: s
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Students</span>
-                  <span className="font-medium">{courseData._count?.enrollments || 0}</span>
+                  <span className="font-medium">{course._count?.enrollments || 0}</span>
                 </div>
-                {courseData.tags?.length > 0 && (
+                {course.tags?.length > 0 && (
                   <div>
                     <span className="text-muted-foreground">Topics</span>
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {courseData.tags.map((tag: string) => (
+                      {course.tags.map((tag: string) => (
                         <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
                       ))}
                     </div>

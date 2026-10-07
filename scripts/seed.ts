@@ -13,7 +13,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function now(): bigint {
-  return BigInt(Math.floor(Date.now() / 1000));
+  return BigInt(Date.now());
 }
 
 function hashPassword(password: string): string {

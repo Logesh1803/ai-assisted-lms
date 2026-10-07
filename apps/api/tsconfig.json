@@ -8,7 +8,8 @@
       "@/*": ["./src/*"],
       "@thinkbloom/data-sources": ["../../libs/data-sources/src"],
       "@thinkbloom/utils": ["../../libs/utils/src"],
-      "@thinkbloom/message-queues": ["../../libs/message-queue/src"]
+      "@thinkbloom/message-queues": ["../../libs/message-queues/src"],
+      "@thinkbloom/notifications": ["../../libs/notifications/src"]
     }
   },
   "include": ["src/**/*"],

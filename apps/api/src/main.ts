@@ -11,6 +11,7 @@ import { SuccessResponseInterceptor } from "./common/core/success-response.inter
 import { NestExpressApplication } from "@nestjs/platform-express";
 import * as path from "path";
 import * as fs from "fs";
+import type { Request, Response } from "express";
 
 const SWAGGER_CDN = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.30.2";
 
@@ -18,12 +19,17 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Ensure uploads directory exists and serve as static files at /uploads
-  const uploadsDir = path.join(process.cwd(), 'uploads');
+  const uploadsDir = path.join(process.cwd(), "uploads");
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
-  app.useStaticAssets(uploadsDir, { prefix: '/uploads' });
-  (BigInt.prototype as any).toJSON = function () {
+  app.useStaticAssets(uploadsDir, { prefix: "/uploads" });
+  // JSON.stringify throws on BigInt, and every timestamp column is one, so
+  // teach BigInt how to serialise. Note this makes timestamps arrive at the
+  // client as strings.
+  (BigInt.prototype as unknown as { toJSON(): string }).toJSON = function (
+    this: bigint,
+  ) {
     return this.toString();
   };
 
@@ -36,7 +42,7 @@ async function bootstrap() {
   app.enableCors({
     origin: "*",
     credentials: true,
-    exposedHeaders: ['x-firm-name'],
+    exposedHeaders: ["x-firm-name"],
   });
 
   app.setGlobalPrefix("api");
@@ -80,7 +86,7 @@ async function bootstrap() {
     ],
   });
 
-  app.getHttpAdapter().get("/api/json", (_req: any, res: any) => {
+  app.getHttpAdapter().get("/api/json", (_req: Request, res: Response) => {
     res.type("application/json");
     res.send(document);
   });
@@ -94,4 +100,3 @@ bootstrap()
   .catch((error) => {
     console.error(error);
   });
-

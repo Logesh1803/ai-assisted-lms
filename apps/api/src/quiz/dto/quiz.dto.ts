@@ -5,16 +5,16 @@ import {
   IsInt,
   IsString,
   IsOptional,
-  IsNumberString,
   Min,
   Max,
   IsEnum,
-} from 'class-validator';
-import { Type } from 'class-transformer';
+} from "class-validator";
+import { Type } from "class-transformer";
+import { PaginationQueryDto } from "@/common/dto/base.dto";
 
 export enum QuestionType {
-  MCQ = 'MCQ',
-  SHORT_ANSWER = 'SHORT_ANSWER',
+  MCQ = "MCQ",
+  SHORT_ANSWER = "SHORT_ANSWER",
 }
 
 export class QuestionDto {
@@ -71,15 +71,7 @@ export class SubmitQuizDto {
   answers: AnswerDto[];
 }
 
-export class QueryQuizAttemptDto {
-  @IsOptional()
-  @IsNumberString()
-  page?: number;
-
-  @IsOptional()
-  @IsNumberString()
-  limit?: number;
-}
+export class QueryQuizAttemptDto extends PaginationQueryDto {}
 
 export class GenerateQuestionsDto {
   @IsInt()

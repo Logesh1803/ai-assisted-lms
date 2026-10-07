@@ -1,6 +1,10 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { SystemsDatabaseService } from '@thinkbloom/data-sources';
-import { NotificationType } from '@thinkbloom/data-sources';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from "@nestjs/common";
+import { SystemsDatabaseService } from "@thinkbloom/data-sources";
+import { NotificationType } from "@thinkbloom/data-sources";
 
 @Injectable()
 export class InAppNotificationService {
@@ -12,7 +16,7 @@ export class InAppNotificationService {
     const [notifications, unreadCount] = await Promise.all([
       this.prisma.notification.findMany({
         where: { user_id: userId },
-        orderBy: { created_at: 'desc' },
+        orderBy: { created_at: "desc" },
         take: 50,
       }),
       this.prisma.notification.count({
@@ -25,8 +29,10 @@ export class InAppNotificationService {
   // ─── Mark single notification as read ────────────────────────────────────
 
   async markRead(uuid: string, userId: number) {
-    const notif = await this.prisma.notification.findUnique({ where: { uuid } });
-    if (!notif) throw new NotFoundException('Notification not found');
+    const notif = await this.prisma.notification.findUnique({
+      where: { uuid },
+    });
+    if (!notif) throw new NotFoundException("Notification not found");
     if (notif.user_id !== userId) throw new ForbiddenException();
 
     return this.prisma.notification.update({
@@ -42,7 +48,7 @@ export class InAppNotificationService {
       where: { user_id: userId, is_read: false },
       data: { is_read: true, read_at: BigInt(Date.now()) },
     });
-    return { message: 'All notifications marked as read' };
+    return { message: "All notifications marked as read" };
   }
 
   // ─── Create notification (called internally) ──────────────────────────────
@@ -61,7 +67,9 @@ export class InAppNotificationService {
         title: data.title,
         message: data.message,
         type: data.type,
-        data: data.extra ? { actionUrl: data.actionUrl, ...data.extra } : { actionUrl: data.actionUrl },
+        data: data.extra
+          ? { actionUrl: data.actionUrl, ...data.extra }
+          : { actionUrl: data.actionUrl },
         created_at: BigInt(Date.now()),
       },
     });

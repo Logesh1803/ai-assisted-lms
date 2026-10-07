@@ -28,7 +28,7 @@ const TEACHER_EMAIL = "teacher@thinkbloom.dev";
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function now(): bigint {
-  return BigInt(Math.floor(Date.now() / 1000));
+  return BigInt(Date.now());
 }
 
 function downloadFile(url: string, dest: string): Promise<void> {

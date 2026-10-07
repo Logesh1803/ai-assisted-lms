@@ -29,7 +29,7 @@ export abstract class BullMQWorkerHost extends WorkerHost {
   }
 
   @OnWorkerEvent("failed")
-  async onFailed(job: Job, err: any) {
+  async onFailed(job: Job, _error: Error) {
     const { id, name, queueName, failedReason } = job;
     this.logger.error(
       `Job id: ${id}, name: ${name} failed in queue ${queueName}. Failed reason: ${failedReason}`,

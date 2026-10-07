@@ -1,5 +1,4 @@
-
-import { IsInt, IsString, IsOptional, IsUrl, Min } from 'class-validator';
+import { IsInt, IsString, IsOptional, IsUrl, Min } from "class-validator";
 
 export class CreateLessonDto {
   @IsInt()

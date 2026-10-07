@@ -3,6 +3,13 @@
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import type { ComponentPropsWithoutRef } from "react";
+
+/**
+ * react-markdown hands `code` the usual <code> props plus an `inline` flag it
+ * adds itself, which is not part of the DOM typings.
+ */
+type CodeProps = ComponentPropsWithoutRef<"code"> & { inline?: boolean };
 
 interface MarkdownRendererProps {
   content: string;
@@ -15,13 +22,13 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
       <ReactMarkdown
         components={{
           // ── Code blocks with syntax highlighting ──────────────────────────
-          code({ className, children, ...props }: any) {
+          code({ className, children, ...props }: CodeProps) {
             const match = /language-(\w+)/.exec(className || "");
             const isBlock = !props.inline && match;
             if (isBlock) {
               return (
                 <SyntaxHighlighter
-                  style={oneLight as any}
+                  style={oneLight as Record<string, React.CSSProperties>}
                   language={match![1]}
                   PreTag="div"
                   className="!rounded-lg !text-sm !my-4 !border !border-border"
@@ -110,7 +117,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
                 src={src}
                 alt={alt || ""}
                 className="rounded-lg w-full object-cover max-h-72 border border-border"
-                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                onError={(event) => { (event.currentTarget as HTMLImageElement).style.display = "none"; }}
               />
               {alt && (
                 <figcaption className="text-center text-xs text-muted-foreground mt-2 italic">

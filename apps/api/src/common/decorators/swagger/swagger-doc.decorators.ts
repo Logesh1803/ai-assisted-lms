@@ -1,46 +1,53 @@
-import {ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse} from "@nestjs/swagger";
-import {ErrorResponseDto, SuccessResponseDto} from "@/common/dto/base-response.dto";
-import {applyDecorators} from "@nestjs/common";
+import {
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+} from "@nestjs/swagger";
+import {
+  ErrorResponseDto,
+  SuccessResponseDto,
+} from "@/common/dto/base-response.dto";
+import { applyDecorators, Type } from "@nestjs/common";
 
-
-
+/** A DTO class Swagger should document the response with. */
 type ApiResponseOption = {
   status: number;
   description: string;
-  type?: any;
+  type?: Type<unknown>;
 };
 
 type ApiQueryOption = {
   name: string;
   required?: boolean;
   description?: string;
-  example?: any;
+  example?: unknown;
 };
 
 type ApiParamOption = {
   name: string;
   required?: boolean;
   description?: string;
-  example?: any;
+  example?: unknown;
 };
 
 export function ApiSwaggerEndpoint(options: {
   summary: string;
-  bodyDto?:any;
+  bodyDto?: Type<unknown>;
   description?: string;
   successDescription?: string;
-  successResponseDto?:any;
+  successResponseDto?: Type<unknown>;
   requireFirmHeader?: boolean;
   queries?: ApiQueryOption[];
   params?: ApiParamOption[];
   responses?: ApiResponseOption[];
-
 }) {
   const {
     summary,
     bodyDto,
     description,
-    successDescription = 'Request successful',
+    successDescription = "Request successful",
     successResponseDto,
     queries = [],
     params = [],
@@ -53,7 +60,7 @@ export function ApiSwaggerEndpoint(options: {
     ApiResponse({
       status: 200,
       description: successDescription,
-      type: successResponseDto??SuccessResponseDto,
+      type: successResponseDto ?? SuccessResponseDto,
     }),
   ];
 
@@ -96,7 +103,6 @@ export function ApiSwaggerEndpoint(options: {
       }),
     );
   });
-
 
   return applyDecorators(...decorators);
 }

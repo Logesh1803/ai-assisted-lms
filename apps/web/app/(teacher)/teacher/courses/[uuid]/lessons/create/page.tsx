@@ -60,7 +60,7 @@ export default function CreateLessonPage({
     queryKey: ["teacher-course", uuid],
     queryFn: () => coursesApi.getOne(uuid),
   });
-  const courseData = course as any;
+  const courseData = course;
 
   const form = useForm<CreateLessonValues>({
     resolver: zodResolver(createLessonSchema),
@@ -73,15 +73,16 @@ export default function CreateLessonPage({
   });
 
   const onSubmit = async (values: CreateLessonValues) => {
-    if (!courseData?.id && !courseData?.uuid) {
+    // The API validates course_id as an integer, so the uuid is not a usable
+    // fallback here — sending it would simply be rejected.
+    if (!courseData?.id) {
       toast.error("Could not find course ID.");
       return;
     }
     setIsLoading(true);
     try {
-      const courseId = courseData.id || courseData.uuid;
       await lessonsApi.create({
-        course_id: courseId,
+        course_id: courseData.id,
         title: values.title,
         description: values.description || undefined,
         content: values.content || undefined,
@@ -89,7 +90,7 @@ export default function CreateLessonPage({
       });
       toast.success("Lesson created!");
       router.push(`/teacher/courses/${uuid}`);
-    } catch (err: any) {
+    } catch (err) {
       toast.error(getFriendlyError(err));
     } finally {
       setIsLoading(false);

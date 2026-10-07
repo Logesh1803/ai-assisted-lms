@@ -9,7 +9,10 @@ function segmentToLabel(segment: string): string {
   if (segment in breadcrumbLabels) return breadcrumbLabels[segment];
   if (/^[0-9a-f-]{36}$/.test(segment)) return "Course";
   if (/^\d+$/.test(segment)) return "Lesson";
-  return segment.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  return segment
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
 function getHomeHref(pathname: string): string {

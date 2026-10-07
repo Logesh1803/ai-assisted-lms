@@ -2,8 +2,8 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
-} from '@nestjs/common';
-import { SystemsDatabaseService } from '@thinkbloom/data-sources';
+} from "@nestjs/common";
+import { SystemsDatabaseService } from "@thinkbloom/data-sources";
 
 @Injectable()
 export class DiscussionService {
@@ -12,8 +12,10 @@ export class DiscussionService {
   // ── THREADS ──────────────────────────────────────────────────────
 
   async getThreads(courseUuid: string, userId: number, page = 1, limit = 20) {
-    const course = await this.prisma.course.findUnique({ where: { uuid: courseUuid } });
-    if (!course) throw new NotFoundException('Course not found');
+    const course = await this.prisma.course.findUnique({
+      where: { uuid: courseUuid },
+    });
+    if (!course) throw new NotFoundException("Course not found");
 
     const skip = (Number(page) - 1) * Number(limit);
     const [total, threads] = await Promise.all([
@@ -22,7 +24,7 @@ export class DiscussionService {
         where: { course_id: course.id },
         skip,
         take: Number(limit),
-        orderBy: [{ is_pinned: 'desc' }, { created_at: 'desc' }],
+        orderBy: [{ is_pinned: "desc" }, { created_at: "desc" }],
         include: {
           user: { select: { first_name: true, last_name: true, role: true } },
           _count: { select: { replies: true } },
@@ -39,14 +41,14 @@ export class DiscussionService {
       include: {
         user: { select: { first_name: true, last_name: true, role: true } },
         replies: {
-          orderBy: { created_at: 'asc' },
+          orderBy: { created_at: "asc" },
           include: {
             user: { select: { first_name: true, last_name: true, role: true } },
           },
         },
       },
     });
-    if (!thread) throw new NotFoundException('Thread not found');
+    if (!thread) throw new NotFoundException("Thread not found");
     return thread;
   }
 
@@ -56,8 +58,10 @@ export class DiscussionService {
     title: string,
     content: string,
   ) {
-    const course = await this.prisma.course.findUnique({ where: { uuid: courseUuid } });
-    if (!course) throw new NotFoundException('Course not found');
+    const course = await this.prisma.course.findUnique({
+      where: { uuid: courseUuid },
+    });
+    if (!course) throw new NotFoundException("Course not found");
 
     return this.prisma.discussionThread.create({
       data: {
@@ -77,9 +81,13 @@ export class DiscussionService {
     const thread = await this.prisma.discussionThread.findUnique({
       where: { uuid: threadUuid },
     });
-    if (!thread) throw new NotFoundException('Thread not found');
-    if (thread.user_id !== userId && userRole !== 'TEACHER' && userRole !== 'ADMIN') {
-      throw new ForbiddenException('Not allowed to delete this thread');
+    if (!thread) throw new NotFoundException("Thread not found");
+    if (
+      thread.user_id !== userId &&
+      userRole !== "TEACHER" &&
+      userRole !== "ADMIN"
+    ) {
+      throw new ForbiddenException("Not allowed to delete this thread");
     }
     await this.prisma.discussionThread.delete({ where: { uuid: threadUuid } });
     return { deleted: true };
@@ -88,8 +96,20 @@ export class DiscussionService {
   async pinThread(threadUuid: string, teacherId: number) {
     const thread = await this.prisma.discussionThread.findUnique({
       where: { uuid: threadUuid },
+      select: {
+        is_pinned: true,
+        course: { select: { teacher_id: true } },
+      },
     });
-    if (!thread) throw new NotFoundException('Thread not found');
+    if (!thread) throw new NotFoundException("Thread not found");
+
+    // Pinning is a teacher-only action. Without this check any signed-in user
+    // could pin or unpin any thread: teacherId was accepted but never used.
+    if (thread.course.teacher_id !== teacherId) {
+      throw new ForbiddenException(
+        "Only the course teacher can pin or unpin a thread",
+      );
+    }
 
     return this.prisma.discussionThread.update({
       where: { uuid: threadUuid },
@@ -103,7 +123,7 @@ export class DiscussionService {
     const thread = await this.prisma.discussionThread.findUnique({
       where: { uuid: threadUuid },
     });
-    if (!thread) throw new NotFoundException('Thread not found');
+    if (!thread) throw new NotFoundException("Thread not found");
 
     return this.prisma.discussionReply.create({
       data: {
@@ -122,9 +142,13 @@ export class DiscussionService {
     const reply = await this.prisma.discussionReply.findUnique({
       where: { uuid: replyUuid },
     });
-    if (!reply) throw new NotFoundException('Reply not found');
-    if (reply.user_id !== userId && userRole !== 'TEACHER' && userRole !== 'ADMIN') {
-      throw new ForbiddenException('Not allowed to delete this reply');
+    if (!reply) throw new NotFoundException("Reply not found");
+    if (
+      reply.user_id !== userId &&
+      userRole !== "TEACHER" &&
+      userRole !== "ADMIN"
+    ) {
+      throw new ForbiddenException("Not allowed to delete this reply");
     }
     await this.prisma.discussionReply.delete({ where: { uuid: replyUuid } });
     return { deleted: true };

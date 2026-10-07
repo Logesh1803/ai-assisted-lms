@@ -11,6 +11,8 @@ import {
   BookOpen, Users, Plus, Edit, BarChart2,
   ArrowRight, GraduationCap, Sparkles,
 } from "lucide-react";
+import type { BadgeProps } from "@/components/ui/badge";
+import type { Course, CourseStatus } from "@/lib/types";
 
 /* ── Stat card ──────────────────────────────────────────────────────────── */
 
@@ -49,12 +51,13 @@ function KpiCard({
 
 /* ── Course row ─────────────────────────────────────────────────────────── */
 
-function CourseRow({ course }: { course: any }) {
-  const statusColor: Record<string, string> = {
-    PUBLISHED: "success",
-    DRAFT:     "secondary",
-    ARCHIVED:  "outline",
-  };
+const STATUS_BADGE: Record<CourseStatus, BadgeProps["variant"]> = {
+  PUBLISHED: "success",
+  DRAFT: "secondary",
+  ARCHIVED: "outline",
+};
+
+function CourseRow({ course }: { course: Course }) {
 
   return (
     <div
@@ -84,7 +87,7 @@ function CourseRow({ course }: { course: any }) {
         <div className="flex items-center gap-2 mb-1">
           <p className="font-semibold text-sm truncate">{course.title}</p>
           <Badge
-            variant={(statusColor[course.status] ?? "outline") as any}
+            variant={STATUS_BADGE[course.status] ?? "outline"}
             className="text-[10px] shrink-0 px-2 py-0.5"
           >
             {course.status}
@@ -131,11 +134,19 @@ export default function TeacherDashboard() {
     queryFn: () => coursesApi.getMine({ limit: 10 }),
   });
 
-  const courses:     any[] = (data as any)?.courses ?? data ?? [];
+  const courses = data?.courses ?? [];
   const totalCourses       = courses.length;
-  const publishedCourses   = courses.filter((c: any) => c.status === "PUBLISHED").length;
-  const totalStudents      = courses.reduce((a: number, c: any) => a + (c._count?.enrollments ?? 0), 0);
-  const totalQuizAttempts  = courses.reduce((a: number, c: any) => a + (c.quizAttemptCount ?? 0), 0);
+  const publishedCourses = courses.filter(
+    (course) => course.status === "PUBLISHED",
+  ).length;
+  const totalStudents = courses.reduce(
+    (runningTotal, course) => runningTotal + (course._count?.enrollments ?? 0),
+    0,
+  );
+  const totalQuizAttempts = courses.reduce(
+    (runningTotal, course) => runningTotal + (course.quizAttemptCount ?? 0),
+    0,
+  );
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
@@ -162,8 +173,8 @@ export default function TeacherDashboard() {
       {/* ── KPI strip ──────────────────────────────────────────────── */}
       {isLoading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-20 rounded-2xl" />
+          {[0, 1, 2, 3].map((index) => (
+            <Skeleton key={index} className="h-20 rounded-2xl" />
           ))}
         </div>
       ) : (
@@ -219,8 +230,8 @@ export default function TeacherDashboard() {
 
         {isLoading ? (
           <div className="space-y-3">
-            {[0, 1, 2].map((i) => (
-              <Skeleton key={i} className="h-24 rounded-2xl" />
+            {[0, 1, 2].map((index) => (
+              <Skeleton key={index} className="h-24 rounded-2xl" />
             ))}
           </div>
         ) : courses.length === 0 ? (
@@ -245,8 +256,8 @@ export default function TeacherDashboard() {
           </div>
         ) : (
           <div className="space-y-3">
-            {courses.slice(0, 5).map((c: any) => (
-              <CourseRow key={c.uuid} course={c} />
+            {courses.slice(0, 5).map((course) => (
+              <CourseRow key={course.uuid} course={course} />
             ))}
           </div>
         )}

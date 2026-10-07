@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty, Min } from 'class-validator';
+import { IsInt, IsNotEmpty, Min } from "class-validator";
 
 export class UpdateWatchTimeDto {
   @IsInt()

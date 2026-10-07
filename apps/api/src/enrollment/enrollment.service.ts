@@ -4,11 +4,16 @@ import {
   ConflictException,
   BadRequestException,
   Logger,
-} from '@nestjs/common';
-import { SystemsDatabaseService, EnrollmentStatus } from '@thinkbloom/data-sources';
-import { getTimestamps } from 'utils/src/date-formatter.service';
-import { QueryEnrollmentDto } from './dto/create-enrollment.dto';
-import { NotificationProducerService } from 'message-queues/src';
+} from "@nestjs/common";
+import {
+  EnrollmentStatus,
+  PrismaSystemTypes,
+  SystemsDatabaseService,
+} from "@thinkbloom/data-sources";
+import { getTimestamps } from "@thinkbloom/utils";
+import { QueryEnrollmentDto } from "./dto/create-enrollment.dto";
+import { calculateCourseProgress } from "./enrollment-progress";
+import { NotificationProducerService } from "@thinkbloom/message-queues";
 
 @Injectable()
 export class EnrollmentService {
@@ -19,15 +24,20 @@ export class EnrollmentService {
     private notificationProducer: NotificationProducerService,
   ) {}
 
-  // ============== ENROLL STUDENT ==============
+  // ─── ENROLL STUDENT ────────────────────────────────────────────────────
   async enroll(studentId: number, courseUuid: string, createdBy: number) {
-    const course = await this.prisma.course.findUnique({ where: { uuid: courseUuid } });
-    if (!course) throw new NotFoundException('Course not found');
+    const course = await this.prisma.course.findUnique({
+      where: { uuid: courseUuid },
+    });
+    if (!course) throw new NotFoundException("Course not found");
 
     const existing = await this.prisma.enrollment.findUnique({
-      where: { student_id_course_id: { student_id: studentId, course_id: course.id } },
+      where: {
+        student_id_course_id: { student_id: studentId, course_id: course.id },
+      },
     });
-    if (existing) throw new ConflictException('Student already enrolled in this course');
+    if (existing)
+      throw new ConflictException("Student already enrolled in this course");
 
     const enrollment = await this.prisma.enrollment.create({
       data: {
@@ -38,31 +48,44 @@ export class EnrollmentService {
         enrolled_at: BigInt(Date.now()),
         created_by: createdBy,
         updated_by: createdBy,
-        ...getTimestamps('create'),
+        ...getTimestamps("create"),
       },
       include: {
         course: { select: { uuid: true, title: true, thumbnail: true } },
-        student: { select: { uuid: true, first_name: true, last_name: true, email: true } },
+        student: {
+          select: {
+            uuid: true,
+            first_name: true,
+            last_name: true,
+            email: true,
+          },
+        },
       },
     });
 
     // Dispatch enrollment confirmation email via queue (non-blocking)
-    this.notificationProducer.dispatchEnrollmentConfirmation({
-      studentName: enrollment.student.first_name,
-      studentEmail: enrollment.student.email,
-      courseTitle: enrollment.course.title,
-      courseUuid: enrollment.course.uuid,
-    }).catch((err) => this.logger.error('Failed to dispatch enrollment email', err));
+    this.notificationProducer
+      .dispatchEnrollmentConfirmation({
+        studentName: enrollment.student.first_name,
+        studentEmail: enrollment.student.email,
+        courseTitle: enrollment.course.title,
+        courseUuid: enrollment.course.uuid,
+      })
+      .catch((error) =>
+        this.logger.error("Failed to dispatch enrollment email", error),
+      );
 
     return enrollment;
   }
 
-  // ============== GET MY ENROLLMENTS ==============
+  // ─── GET MY ENROLLMENTS ────────────────────────────────────────────────
   async getStudentEnrollments(studentId: number, query: QueryEnrollmentDto) {
     const { page = 1, limit = 10, status } = query;
     const skip = (Number(page) - 1) * Number(limit);
 
-    const where: any = { student_id: studentId };
+    const where: PrismaSystemTypes.EnrollmentWhereInput = {
+      student_id: studentId,
+    };
     if (status) where.status = status;
 
     const [total, enrollments] = await Promise.all([
@@ -71,12 +94,19 @@ export class EnrollmentService {
         where,
         skip,
         take: Number(limit),
-        orderBy: { enrolled_at: 'desc' },
+        orderBy: { enrolled_at: "desc" },
         include: {
-          course: { select: { uuid: true, title: true, thumbnail: true, description: true } },
+          course: {
+            select: {
+              uuid: true,
+              title: true,
+              thumbnail: true,
+              description: true,
+            },
+          },
           quiz_attempts: {
             where: { submitted_at: { not: null } },
-            orderBy: { created_at: 'desc' },
+            orderBy: { created_at: "desc" },
             select: {
               uuid: true,
               score: true,
@@ -95,15 +125,19 @@ export class EnrollmentService {
     return { page, limit, total, enrollments };
   }
 
-  // ============== GET COURSE ENROLLMENTS (teacher) ==============
+  // ─── GET COURSE ENROLLMENTS (teacher) ──────────────────────────────────
   async getCourseEnrollments(courseUuid: string, query: QueryEnrollmentDto) {
-    const course = await this.prisma.course.findUnique({ where: { uuid: courseUuid } });
-    if (!course) throw new NotFoundException('Course not found');
+    const course = await this.prisma.course.findUnique({
+      where: { uuid: courseUuid },
+    });
+    if (!course) throw new NotFoundException("Course not found");
 
     const { page = 1, limit = 10, status } = query;
     const skip = (Number(page) - 1) * Number(limit);
 
-    const where: any = { course_id: course.id };
+    const where: PrismaSystemTypes.EnrollmentWhereInput = {
+      course_id: course.id,
+    };
     if (status) where.status = status;
 
     const [total, enrollments] = await Promise.all([
@@ -112,9 +146,16 @@ export class EnrollmentService {
         where,
         skip,
         take: Number(limit),
-        orderBy: { enrolled_at: 'desc' },
+        orderBy: { enrolled_at: "desc" },
         include: {
-          student: { select: { uuid: true, first_name: true, last_name: true, email: true } },
+          student: {
+            select: {
+              uuid: true,
+              first_name: true,
+              last_name: true,
+              email: true,
+            },
+          },
         },
       }),
     ]);
@@ -122,66 +163,96 @@ export class EnrollmentService {
     return { page, limit, total, enrollments };
   }
 
-  // ============== GET SINGLE ENROLLMENT ==============
+  // ─── GET SINGLE ENROLLMENT ─────────────────────────────────────────────
   async findOne(enrollmentUuid: string) {
     const enrollment = await this.prisma.enrollment.findUnique({
       where: { uuid: enrollmentUuid },
       include: {
         course: { select: { uuid: true, title: true, thumbnail: true } },
-        student: { select: { uuid: true, first_name: true, last_name: true, email: true } },
+        student: {
+          select: {
+            uuid: true,
+            first_name: true,
+            last_name: true,
+            email: true,
+          },
+        },
         lesson_progress: {
-          include: { lesson: { select: { id: true, title: true, order: true } } },
-          orderBy: { lesson: { order: 'asc' } },
+          include: {
+            lesson: { select: { id: true, title: true, order: true } },
+          },
+          orderBy: { lesson: { order: "asc" } },
         },
       },
     });
 
-    if (!enrollment) throw new NotFoundException('Enrollment not found');
+    if (!enrollment) throw new NotFoundException("Enrollment not found");
     return enrollment;
   }
 
-  // ============== DROP ENROLLMENT ==============
+  // ─── DROP ENROLLMENT ───────────────────────────────────────────────────
   async drop(enrollmentUuid: string, studentId: number) {
-    const enrollment = await this.prisma.enrollment.findUnique({ where: { uuid: enrollmentUuid } });
-    if (!enrollment) throw new NotFoundException('Enrollment not found');
+    const enrollment = await this.prisma.enrollment.findUnique({
+      where: { uuid: enrollmentUuid },
+    });
+    if (!enrollment) throw new NotFoundException("Enrollment not found");
     if (enrollment.student_id !== studentId)
-      throw new BadRequestException('You can only drop your own enrollment');
+      throw new BadRequestException("You can only drop your own enrollment");
     if (enrollment.status === EnrollmentStatus.DROPPED)
-      throw new BadRequestException('Enrollment already dropped');
+      throw new BadRequestException("Enrollment already dropped");
 
     return this.prisma.enrollment.update({
       where: { uuid: enrollmentUuid },
-      data: { status: EnrollmentStatus.DROPPED, updated_by: studentId, ...getTimestamps('update') },
+      data: {
+        status: EnrollmentStatus.DROPPED,
+        updated_by: studentId,
+        ...getTimestamps("update"),
+      },
     });
   }
 
-  // ============== UPDATE PROGRESS (internal) ==============
+  // ─── UPDATE PROGRESS (internal) ────────────────────────────────────────
   async updateProgress(enrollmentId: number, updatedBy: number) {
     const enrollment = await this.prisma.enrollment.findUnique({
       where: { id: enrollmentId },
-      include: {
-        course: { include: { lessons: { where: { deleted_at: null } } } },
-        lesson_progress: true,
-      },
+      select: { id: true, course_id: true },
     });
 
-    if (!enrollment) throw new NotFoundException('Enrollment not found');
+    if (!enrollment) throw new NotFoundException("Enrollment not found");
 
-    const totalLessons = enrollment.course.lessons.length;
+    // Let the database do the counting. Loading every lesson row just to read
+    // its length pulled the full markdown body of each lesson across the wire
+    // for no reason; two COUNT queries return the same two numbers.
+    const [totalLessons, completedLessons] = await Promise.all([
+      this.prisma.lesson.count({
+        where: { course_id: enrollment.course_id, deleted_at: null },
+      }),
+      this.prisma.lessonProgress.count({
+        where: {
+          enrollment_id: enrollmentId,
+          is_completed: true,
+          lesson: { deleted_at: null },
+        },
+      }),
+    ]);
+
     if (totalLessons === 0) return enrollment;
 
-    const completedLessons = enrollment.lesson_progress.filter((lp) => lp.is_completed).length;
-    const progress = Math.round((completedLessons / totalLessons) * 100);
-    const isCompleted = progress === 100;
+    const { progress, isCompleted } = calculateCourseProgress(
+      completedLessons,
+      totalLessons,
+    );
 
     return this.prisma.enrollment.update({
       where: { id: enrollmentId },
       data: {
         progress,
-        status: isCompleted ? EnrollmentStatus.COMPLETED : EnrollmentStatus.ACTIVE,
+        status: isCompleted
+          ? EnrollmentStatus.COMPLETED
+          : EnrollmentStatus.ACTIVE,
         completed_at: isCompleted ? BigInt(Date.now()) : null,
         updated_by: updatedBy,
-        ...getTimestamps('update'),
+        ...getTimestamps("update"),
       },
     });
   }

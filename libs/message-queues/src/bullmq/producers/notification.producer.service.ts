@@ -19,7 +19,13 @@ export class NotificationProducerService {
     private readonly notificationQueue: Queue,
   ) {}
 
-  async dispatachUserPasswordResetNotification(userTokenData: any) {
+  async dispatachUserPasswordResetNotification(userTokenData: {
+    userId: number;
+    name: string;
+    email: string;
+    token: string;
+    type: string;
+  }) {
     try {
       const { id } = await this.notificationQueue.add(
         NOTIFICATION_JOBS.USER_PASSWORD_RESET,
@@ -28,8 +34,9 @@ export class NotificationProducerService {
       );
       this.logger.log(`Dispatched ${NOTIFICATION_JOBS.USER_PASSWORD_RESET}, job id: ${id}`);
       return id;
-    } catch (error: any) {
-      throw new Error(error);
+    } catch (error) {
+      this.logger.error(`Failed to dispatch ${NOTIFICATION_JOBS.USER_PASSWORD_RESET}`, error);
+      throw error;
     }
   }
 
@@ -47,8 +54,9 @@ export class NotificationProducerService {
       );
       this.logger.log(`Dispatched ${NOTIFICATION_JOBS.ENROLLMENT_CONFIRMATION}, job id: ${id}`);
       return id;
-    } catch (error: any) {
-      throw new Error(error);
+    } catch (error) {
+      this.logger.error(`Failed to dispatch ${NOTIFICATION_JOBS.ENROLLMENT_CONFIRMATION}`, error);
+      throw error;
     }
   }
 
@@ -71,8 +79,9 @@ export class NotificationProducerService {
       );
       this.logger.log(`Dispatched ${NOTIFICATION_JOBS.QUIZ_COMPLETED}, job id: ${id}`);
       return id;
-    } catch (error: any) {
-      throw new Error(error);
+    } catch (error) {
+      this.logger.error(`Failed to dispatch ${NOTIFICATION_JOBS.QUIZ_COMPLETED}`, error);
+      throw error;
     }
   }
 
@@ -90,12 +99,13 @@ export class NotificationProducerService {
       );
       this.logger.log(`Dispatched ${NOTIFICATION_JOBS.LESSON_COMPLETED}, job id: ${id}`);
       return id;
-    } catch (error: any) {
-      throw new Error(error);
+    } catch (error) {
+      this.logger.error(`Failed to dispatch ${NOTIFICATION_JOBS.LESSON_COMPLETED}`, error);
+      throw error;
     }
   }
 
-  async sentOtp(data: any) {
+  async sentOtp(data: { email: string; otp: string; name?: string }) {
     try {
       const { id } = await this.notificationQueue.add(
         NOTIFICATION_JOBS.USER_OTP,
@@ -104,8 +114,9 @@ export class NotificationProducerService {
       );
       this.logger.log(`Dispatched ${NOTIFICATION_JOBS.USER_OTP}, job id: ${id}`);
       return id;
-    } catch (error: any) {
-      throw new Error(error);
+    } catch (error) {
+      this.logger.error(`Failed to dispatch ${NOTIFICATION_JOBS.USER_OTP}`, error);
+      throw error;
     }
   }
 
@@ -124,8 +135,9 @@ export class NotificationProducerService {
       );
       this.logger.log(`Dispatched ${NOTIFICATION_JOBS.COURSE_NOTE_UPLOADED}, job id: ${id}`);
       return id;
-    } catch (error: any) {
-      throw new Error(error);
+    } catch (error) {
+      this.logger.error(`Failed to dispatch ${NOTIFICATION_JOBS.COURSE_NOTE_UPLOADED}`, error);
+      throw error;
     }
   }
 
@@ -146,8 +158,9 @@ export class NotificationProducerService {
       );
       this.logger.log(`Dispatched ${NOTIFICATION_JOBS.QUIZ_ATTEMPTED_TEACHER}, job id: ${id}`);
       return id;
-    } catch (error: any) {
-      throw new Error(error);
+    } catch (error) {
+      this.logger.error(`Failed to dispatch ${NOTIFICATION_JOBS.QUIZ_ATTEMPTED_TEACHER}`, error);
+      throw error;
     }
   }
 }

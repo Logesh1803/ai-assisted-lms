@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, Search, Users, ArrowRight, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { BookOpen, Search, Users, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { getFriendlyError } from "@/lib/errors";
 
 export default function StudentCoursesPage() {
@@ -32,12 +32,15 @@ export default function StudentCoursesPage() {
       queryClient.invalidateQueries({ queryKey: ["courses"] });
       router.push(`/student/courses/${uuid}`);
     },
-    onError: (err: any) => toast.error(getFriendlyError(err)),
+    onError: (error) => toast.error(getFriendlyError(error)),
     onSettled: () => setEnrollingUuid(null),
   });
 
-  const courses: any[]   = (data as any)?.courses ?? data ?? [];
-  const totalPages: number = (data as any)?.totalPages ?? 1;
+  const courses = data?.courses ?? [];
+  // The API reports a total row count, not a page count. Reading a
+  // `totalPages` field it never sends pinned this at 1, so the pager below
+  // stayed hidden and nothing past the first page was reachable.
+  const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / (data?.limit || 12)));
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -54,7 +57,7 @@ export default function StudentCoursesPage() {
         <Input
           placeholder="Search courses…"
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          onChange={(event) => { setSearch(event.target.value); setPage(1); }}
           className="pl-10"
         />
       </div>
@@ -62,8 +65,8 @@ export default function StudentCoursesPage() {
       {/* ── Grid ───────────────────────────────────────────────────── */}
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-72 rounded-2xl" />
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Skeleton key={index} className="h-72 rounded-2xl" />
           ))}
         </div>
       ) : courses.length === 0 ? (
@@ -81,7 +84,7 @@ export default function StudentCoursesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 animate-fade-up animate-fade-up-3">
-          {courses.map((course: any) => (
+          {courses.map((course) => (
             <div
               key={course.uuid}
               className="group rounded-2xl overflow-hidden flex flex-col transition-all duration-200 hover:shadow-[var(--shadow-lg)] hover:-translate-y-1"
@@ -109,7 +112,7 @@ export default function StudentCoursesPage() {
                   <p className="text-sm font-bold line-clamp-2 leading-snug">{course.title}</p>
                   {course.teacher && (
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      by {course.teacher.firstName} {course.teacher.lastName ?? ""}
+                      by {course.teacher.first_name} {course.teacher.last_name ?? ""}
                     </p>
                   )}
                 </div>
@@ -120,9 +123,9 @@ export default function StudentCoursesPage() {
                   </p>
                 )}
 
-                {course.tags?.length > 0 && (
+                {course.tags && course.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
-                    {course.tags.slice(0, 3).map((tag: string) => (
+                    {course.tags.slice(0, 3).map((tag) => (
                       <Badge key={tag} variant="secondary" className="text-[10px] px-2">
                         {tag}
                       </Badge>
@@ -133,39 +136,28 @@ export default function StudentCoursesPage() {
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <BookOpen className="h-3 w-3" />
-                    {course._count?.lessons ?? course.lessonCount ?? 0} lessons
+                    {course._count?.lessons ?? 0} lessons
                   </span>
                   <span className="flex items-center gap-1">
                     <Users className="h-3 w-3" />
-                    {course._count?.enrollments ?? course.enrollmentCount ?? 0} students
+                    {course._count?.enrollments ?? 0} students
                   </span>
                 </div>
 
                 {/* Actions */}
                 <div className="flex gap-2 mt-auto pt-1">
-                  {course.isEnrolled ? (
-                    <Link href={`/student/courses/${course.uuid}`} className="flex-1">
-                      <Button className="w-full" size="sm">
-                        <ArrowRight className="h-3.5 w-3.5" />
-                        Continue
-                      </Button>
-                    </Link>
-                  ) : (
-                    <>
-                      <Link href={`/student/courses/${course.uuid}`} className="flex-1">
-                        <Button variant="outline" size="sm" className="w-full">View</Button>
-                      </Link>
-                      <Button
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => { setEnrollingUuid(course.uuid); enrollMutation.mutate(course.uuid); }}
-                        disabled={enrollingUuid === course.uuid}
-                      >
-                        {enrollingUuid === course.uuid ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                        Enroll
-                      </Button>
-                    </>
-                  )}
+                  <Link href={`/student/courses/${course.uuid}`} className="flex-1">
+                    <Button variant="outline" size="sm" className="w-full">View</Button>
+                  </Link>
+                  <Button
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => { setEnrollingUuid(course.uuid); enrollMutation.mutate(course.uuid); }}
+                    disabled={enrollingUuid === course.uuid}
+                  >
+                    {enrollingUuid === course.uuid ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                    Enroll
+                  </Button>
                 </div>
               </div>
             </div>
@@ -178,7 +170,7 @@ export default function StudentCoursesPage() {
         <div className="flex items-center justify-center gap-3 pt-2">
           <Button
             variant="outline" size="sm"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
             disabled={page === 1}
             className="gap-1.5"
           >
@@ -190,7 +182,7 @@ export default function StudentCoursesPage() {
           </span>
           <Button
             variant="outline" size="sm"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
             disabled={page === totalPages}
             className="gap-1.5"
           >

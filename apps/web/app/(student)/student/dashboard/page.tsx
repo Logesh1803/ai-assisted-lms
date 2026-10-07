@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuthStore } from "@/store/auth.store";
 import { enrollmentsApi, coursesApi } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
+import type { Course, Enrollment } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,9 +18,9 @@ import {
 /* ── Greeting helpers ───────────────────────────────────────────────────── */
 
 function getGreeting() {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
+  const hourOfDay = new Date().getHours();
+  if (hourOfDay < 12) return "Good morning";
+  if (hourOfDay < 17) return "Good afternoon";
   return "Good evening";
 }
 
@@ -61,9 +61,9 @@ function StatCard({ icon: Icon, label, value, gradient, delay = "0ms" }: StatCar
 
 /* ── Course enrollment card ─────────────────────────────────────────────── */
 
-function EnrollmentCard({ enrollment }: { enrollment: any }) {
-  const progress = enrollment.progressPercent ?? enrollment.progress ?? 0;
-  const course   = enrollment.course ?? {};
+function EnrollmentCard({ enrollment }: { enrollment: Enrollment }) {
+  const progress = enrollment.progress ?? 0;
+  const course = enrollment.course;
 
   return (
     <div
@@ -72,7 +72,7 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
     >
       {/* Thumbnail */}
       <div className="relative h-28 overflow-hidden">
-        {course.thumbnail ? (
+        {course?.thumbnail ? (
           <img
             src={course.thumbnail}
             alt={course.title}
@@ -87,7 +87,7 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-3">
           <p className="text-sm font-semibold text-white truncate leading-tight">
-            {course.title ?? enrollment.courseTitle ?? "Untitled"}
+            {course?.title ?? "Untitled"}
           </p>
         </div>
         <div className="absolute top-2.5 right-2.5">
@@ -102,9 +102,9 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
 
       {/* Body */}
       <div className="p-4 space-y-3">
-        {enrollment.createdAt && (
+        {enrollment.enrolled_at && (
           <p className="text-xs text-muted-foreground">
-            Enrolled {formatDate(enrollment.createdAt)}
+            Enrolled {formatDate(enrollment.enrolled_at)}
           </p>
         )}
         <div className="space-y-1.5">
@@ -114,7 +114,7 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
           </div>
           <Progress value={progress} className="h-1.5" />
         </div>
-        <Link href={`/student/courses/${course.uuid ?? enrollment.courseUuid}`}>
+        <Link href={`/student/courses/${course?.uuid ?? ""}`}>
           <Button size="sm" variant="outline" className="w-full mt-1">
             <Play className="h-3 w-3" />
             {enrollment.status === "COMPLETED" ? "Review" : "Continue"}
@@ -127,7 +127,7 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
 
 /* ── Browse course card ─────────────────────────────────────────────────── */
 
-function CourseCard({ course }: { course: any }) {
+function CourseCard({ course }: { course: Course }) {
   return (
     <Link href={`/student/courses/${course.uuid}`}>
       <div
@@ -162,19 +162,15 @@ function CourseCard({ course }: { course: any }) {
           <div className="flex items-center gap-3 text-xs text-muted-foreground pt-1">
             <span className="flex items-center gap-1">
               <BookOpen className="h-3 w-3" />
-              {course.lessonCount ?? course._count?.lessons ?? 0} lessons
+              {course._count?.lessons ?? 0} lessons
             </span>
             <span className="flex items-center gap-1">
               <Users className="h-3 w-3" />
-              {course.enrollmentCount ?? course._count?.enrollments ?? 0}
+              {course._count?.enrollments ?? 0}
             </span>
           </div>
-          <Button
-            size="sm"
-            className="w-full mt-1"
-            variant={course.isEnrolled ? "outline" : "default"}
-          >
-            {course.isEnrolled ? "Continue" : "View Course"}
+          <Button size="sm" className="w-full mt-1">
+            View Course
           </Button>
         </div>
       </div>
@@ -197,16 +193,26 @@ export default function StudentDashboard() {
     queryFn: () => coursesApi.getAll({ limit: 6 }),
   });
 
-  const enrollments: any[] = (enrollmentsData as any)?.enrollments ?? enrollmentsData ?? [];
-  const courses:     any[] = (coursesData as any)?.courses ?? coursesData ?? [];
+  const enrollments = enrollmentsData?.enrollments ?? [];
+  const courses = coursesData?.courses ?? [];
 
-  const enrolledCount  = enrollments.length;
-  const completedCount = enrollments.filter((e: any) => e.status === "COMPLETED").length;
-  const avgScore = (() => {
-    const w = enrollments.filter((e: any) => e.lastQuizScore != null);
-    if (!w.length) return 0;
-    return Math.round(w.reduce((a: number, e: any) => a + (e.lastQuizScore ?? 0), 0) / w.length);
-  })();
+  const enrolledCount = enrollments.length;
+  const completedCount = enrollments.filter(
+    (enrollment) => enrollment.status === "COMPLETED",
+  ).length;
+
+  // Average of each course's most recent quiz score. The enrollments endpoint
+  // returns quiz_attempts newest-first; the previous version read a
+  // `lastQuizScore` field that the API never sends, so this always showed 0.
+  const latestScores = enrollments
+    .map((enrollment) => enrollment.quiz_attempts?.[0]?.score)
+    .filter((score): score is number => score != null);
+  const avgScore = latestScores.length
+    ? Math.round(
+        latestScores.reduce((total, score) => total + score, 0) /
+          latestScores.length,
+      )
+    : 0;
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
@@ -239,8 +245,8 @@ export default function StudentDashboard() {
       {/* ── Stats ──────────────────────────────────────────────────── */}
       {enrollmentsLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-20 rounded-2xl" />
+          {[0, 1, 2].map((index) => (
+            <Skeleton key={index} className="h-20 rounded-2xl" />
           ))}
         </div>
       ) : (
@@ -318,7 +324,7 @@ export default function StudentDashboard() {
 
         {enrollmentsLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[0, 1].map((i) => <Skeleton key={i} className="h-56 rounded-2xl" />)}
+            {[0, 1].map((index) => <Skeleton key={index} className="h-56 rounded-2xl" />)}
           </div>
         ) : enrollments.length === 0 ? (
           <div
@@ -341,8 +347,8 @@ export default function StudentDashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {enrollments.slice(0, 4).map((e: any) => (
-              <EnrollmentCard key={e.uuid} enrollment={e} />
+            {enrollments.slice(0, 4).map((enrollment) => (
+              <EnrollmentCard key={enrollment.uuid} enrollment={enrollment} />
             ))}
           </div>
         )}
@@ -364,8 +370,8 @@ export default function StudentDashboard() {
 
         {coursesLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[0, 1, 2].map((i) => (
-              <Skeleton key={i} className="h-64 rounded-2xl" />
+            {[0, 1, 2].map((index) => (
+              <Skeleton key={index} className="h-64 rounded-2xl" />
             ))}
           </div>
         ) : courses.length === 0 ? (
@@ -379,8 +385,8 @@ export default function StudentDashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {courses.map((c: any) => (
-              <CourseCard key={c.uuid} course={c} />
+            {courses.map((course) => (
+              <CourseCard key={course.uuid} course={course} />
             ))}
           </div>
         )}

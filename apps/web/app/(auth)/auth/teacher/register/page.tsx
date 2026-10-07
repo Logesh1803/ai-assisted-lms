@@ -14,17 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { authApi } from "@/lib/api";
+import { STRONG_PASSWORD_HINT, strongPasswordSchema } from "@/lib/password";
 
 const registerSchema = z
   .object({
     firstName: z.string().min(2, "First name must be at least 2 characters").max(50, "First name is too long"),
     lastName: z.string().max(50, "Last name is too long").optional(),
     email: z.string().email("Enter a valid email address"),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(/[A-Za-z]/, "Password must contain at least one letter")
-      .regex(/[\d\W]/, "Password must contain at least one number or symbol"),
+    password: strongPasswordSchema,
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -63,8 +60,11 @@ export default function TeacherRegisterPage() {
       });
       toast.success("Teacher account created! Please sign in.");
       router.push("/auth/login");
-    } catch (err: any) {
-      const msg: string = err.message || "Registration failed. Please try again.";
+    } catch (err) {
+      const msg =
+        err instanceof Error && err.message
+          ? err.message
+          : "Registration failed. Please try again.";
       if (msg.toLowerCase().includes("email")) {
         form.setError("email", { message: "An account with this email already exists" });
       } else {
@@ -140,12 +140,12 @@ export default function TeacherRegisterPage() {
                   <FormControl>
                     <div className="relative">
                       <Input placeholder="••••••••" type={showPassword ? "text" : "password"} autoComplete="new-password" {...field} className="pr-10" />
-                      <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+                      <button type="button" onClick={() => setShowPassword((isVisible) => !isVisible)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                   </FormControl>
-                  <FormDescription>At least 8 characters with a letter and a number or symbol.</FormDescription>
+                  <FormDescription>{STRONG_PASSWORD_HINT}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -159,7 +159,7 @@ export default function TeacherRegisterPage() {
                   <FormControl>
                     <div className="relative">
                       <Input placeholder="••••••••" type={showConfirm ? "text" : "password"} autoComplete="new-password" {...field} className="pr-10" />
-                      <button type="button" onClick={() => setShowConfirm((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+                      <button type="button" onClick={() => setShowConfirm((isVisible) => !isVisible)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
                         {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>

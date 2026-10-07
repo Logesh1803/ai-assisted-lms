@@ -1,4 +1,5 @@
 import {
+  Logger,
   ArgumentsHost,
   Catch,
   ExceptionFilter,
@@ -7,9 +8,18 @@ import {
 } from "@nestjs/common";
 import { ValidationError } from "class-validator";
 
+/** What Nest puts in an HttpException body. */
+interface HttpExceptionBody {
+  message?: string | ValidationError[];
+  error?: string;
+  statusCode?: number;
+}
+
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
-  catch(exception: any, host: ArgumentsHost) {
+  private readonly logger = new Logger(GlobalExceptionFilter.name);
+
+  catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse();
 
@@ -17,11 +27,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
-      const exceptionResponse = exception.getResponse() as any;
+      const exceptionResponse = exception.getResponse() as HttpExceptionBody;
 
       if (exception instanceof BadRequestException) {
         const response = host.switchToHttp().getResponse();
-        const res = exception.getResponse() as any;
+        const res = exception.getResponse() as HttpExceptionBody;
 
         const timestamp = new Date().toISOString();
 
@@ -50,7 +60,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         timestamp,
       });
     }
-    console.log(`HTTP Error: ${exception.message}`, exception.stack);
+    // Anything can be thrown, so narrow before reading Error fields.
+    if (exception instanceof Error) {
+      this.logger.error(
+        `Unhandled error: ${exception.message}`,
+        exception.stack,
+      );
+    } else {
+      this.logger.error(`Unhandled non-Error thrown: ${String(exception)}`);
+    }
     // Non-HTTP errors
     return response.status(500).json({
       success: false,

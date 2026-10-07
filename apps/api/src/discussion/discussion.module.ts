@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
-import { DiscussionService } from './discussion.service';
-import { DiscussionController } from './discussion.controller';
-import { SystemsDatabaseModule } from '@thinkbloom/data-sources';
+import { Module } from "@nestjs/common";
+import { DiscussionService } from "./discussion.service";
+import { DiscussionController } from "./discussion.controller";
+import { SystemsDatabaseModule } from "@thinkbloom/data-sources";
 
 @Module({
   imports: [SystemsDatabaseModule],

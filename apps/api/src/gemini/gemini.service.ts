@@ -1,133 +1,36 @@
-import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { GoogleAIFileManager, FileState } from '@google/generative-ai/server';
+import { Injectable, Logger, HttpException, HttpStatus } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { GenerativeModel, GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleAIFileManager, FileState } from "@google/generative-ai/server";
+import { getErrorMessage } from "@thinkbloom/utils";
+import { parseGeminiJson } from "./json-repair";
 
 @Injectable()
 export class GeminiService {
   private logger = new Logger(GeminiService.name);
-  private model: any;
+  private model: GenerativeModel;
 
   constructor(private configService: ConfigService) {
-    const apiKey = this.configService.get<string>('GEMINI_API_KEY') as string;
+    const apiKey = this.configService.get<string>("GEMINI_API_KEY") as string;
     const genAI = new GoogleGenerativeAI(apiKey);
     this.model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
-  }
-
-  private parseJson<T>(text: string): T {
-    // Strip markdown code fences
-    const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-    // Escape raw control characters that appear inside JSON string values.
-    // Structural whitespace (between tokens) is left untouched.
-    const sanitized = this.escapeControlCharsInStrings(cleaned);
-    return JSON.parse(sanitized);
-  }
-
-  /**
-   * Walks the raw JSON text character-by-character and fixes two classes of
-   * problems that Gemini introduces in long/rich content:
-   *
-   * 1. Raw control characters (U+0000–U+001F) inside string values are
-   *    escaped to \n, \r, \t, or \uXXXX as required by the JSON spec.
-   *
-   * 2. Invalid or ambiguous backslash sequences inside string values.
-   *    Gemini emits LaTeX like \frac, \sqrt, \alpha, \pm, \[ etc.
-   *    Only  \" \\  \/ \n \r \t \uXXXX  are safe to pass through unchanged.
-   *    \b and \f are technically valid JSON escapes but Gemini almost never
-   *    means backspace/form-feed — it means \beta, \frac etc., so they are
-   *    also treated as bare backslashes and doubled.
-   *    Any other \X has its backslash doubled so JSON.parse sees a literal \.
-   *
-   * Bug-free invariant: when we advance past a backslash we only advance i
-   * by 1 (past the \ itself); the following character is processed on the
-   * next iteration and receives its own control-char treatment if needed.
-   */
-  private escapeControlCharsInStrings(text: string): string {
-    // Only these characters after \ are unambiguous safe JSON escapes.
-    // \b and \f are intentionally excluded — Gemini uses them for LaTeX.
-    const SAFE_ESCAPES = new Set(['"', '\\', '/', 'n', 'r', 't', 'u']);
-
-    let result = '';
-    let inString = false;
-    let i = 0;
-
-    while (i < text.length) {
-      const ch = text[i];
-
-      // ── outside a string ─────────────────────────────────────────────────
-      if (!inString) {
-        if (ch === '"') inString = true;
-        result += ch;
-        i++;
-        continue;
-      }
-
-      // ── inside a string ──────────────────────────────────────────────────
-
-      if (ch === '\\') {
-        const next = i + 1 < text.length ? text[i + 1] : '';
-
-        if (SAFE_ESCAPES.has(next)) {
-          // Safe escape — keep the \ and consume next char together
-          result += '\\' + next;
-          i += 2;
-          if (next === 'u') {
-            // \uXXXX — consume the four hex digits
-            result += text.slice(i, i + 4);
-            i += 4;
-          }
-        } else {
-          // Bare or ambiguous backslash (LaTeX, etc.) — escape only the \
-          // The character after it is left for the next iteration so it gets
-          // its own control-char check if necessary.
-          result += '\\\\';
-          i += 1;
-        }
-        continue;
-      }
-
-      if (ch === '"') {
-        inString = false;
-        result += ch;
-        i++;
-        continue;
-      }
-
-      // Raw control character inside a string
-      const code = ch.charCodeAt(0);
-      if (code < 0x20) {
-        switch (ch) {
-          case '\n': result += '\\n'; break;
-          case '\r': result += '\\r'; break;
-          case '\t': result += '\\t'; break;
-          default:   result += '\\u' + code.toString(16).padStart(4, '0');
-        }
-        i++;
-        continue;
-      }
-
-      result += ch;
-      i++;
-    }
-
-    return result;
   }
 
   private async generate(prompt: string): Promise<string> {
     try {
       const result = await this.model.generateContent(prompt);
       return result.response.text();
-    } catch (err: any) {
-      const msg: string = err?.message ?? '';
-      if (msg.includes('429') || msg.includes('Too Many Requests')) {
+    } catch (error) {
+      const msg = getErrorMessage(error);
+      if (msg.includes("429") || msg.includes("Too Many Requests")) {
         const retryMatch = msg.match(/retry[^0-9]*(\d+)/i);
-        const seconds = retryMatch ? retryMatch[1] : '60';
+        const seconds = retryMatch ? retryMatch[1] : "60";
         throw new HttpException(
           `AI quota exceeded. Please try again in ${seconds} seconds.`,
           HttpStatus.TOO_MANY_REQUESTS,
         );
       }
-      throw err;
+      throw error;
     }
   }
 
@@ -135,25 +38,31 @@ export class GeminiService {
 
   async generateCourseSummary(
     courseTitle: string,
-    lessons: { title: string; description: string; content: string; videoSummary?: string; videoKeyPoints?: string[] }[],
+    lessons: {
+      title: string;
+      description: string;
+      content: string;
+      videoSummary?: string;
+      videoKeyPoints?: string[];
+    }[],
   ): Promise<{ summary: string; key_points: string[] }> {
     const lessonContent = lessons
-      .map((l, i) => {
-        let block = `Lesson ${i + 1}: ${l.title}\n${l.description ?? ''}\n${l.content ?? ''}`;
-        if (l.videoSummary) {
-          block += `\n[Video Content]: ${l.videoSummary}`;
+      .map((lesson, lessonIndex) => {
+        let block = `Lesson ${lessonIndex + 1}: ${lesson.title}\n${lesson.description ?? ""}\n${lesson.content ?? ""}`;
+        if (lesson.videoSummary) {
+          block += `\n[Video Content]: ${lesson.videoSummary}`;
         }
-        if (l.videoKeyPoints?.length) {
-          block += `\n[Video Key Points]: ${l.videoKeyPoints.join(' | ')}`;
+        if (lesson.videoKeyPoints?.length) {
+          block += `\n[Video Key Points]: ${lesson.videoKeyPoints.join(" | ")}`;
         }
         return block;
       })
-      .join('\n\n');
+      .join("\n\n");
 
-    const hasVideo = lessons.some((l) => l.videoSummary);
+    const hasVideo = lessons.some((lesson) => lesson.videoSummary);
 
     const prompt = `
-You are an expert educator. Given the course "${courseTitle}" with the following lessons${hasVideo ? ' (some include analyzed video content)' : ''}, generate:
+You are an expert educator. Given the course "${courseTitle}" with the following lessons${hasVideo ? " (some include analyzed video content)" : ""}, generate:
 1. A concise course summary (2-3 paragraphs)
 2. A list of 5-8 key points students will learn
 
@@ -167,8 +76,10 @@ Respond in this exact JSON format:
 }`;
 
     const text = await this.generate(prompt);
-    this.logger.log(`Generated summary for course: ${courseTitle}${hasVideo ? ' (with video analysis)' : ''}`);
-    return this.parseJson(text);
+    this.logger.log(
+      `Generated summary for course: ${courseTitle}${hasVideo ? " (with video analysis)" : ""}`,
+    );
+    return parseGeminiJson(text);
   }
 
   // ─── MCQ Questions ─────────────────────────────────────────────────────────
@@ -179,8 +90,8 @@ Respond in this exact JSON format:
     count: number = 10,
   ): Promise<any[]> {
     const lessonContent = lessons
-      .map((l) => `${l.title}: ${l.content ?? ''}`)
-      .join('\n\n');
+      .map((lesson) => `${lesson.title}: ${lesson.content ?? ""}`)
+      .join("\n\n");
 
     const prompt = `
 You are an expert quiz creator. Based on the course "${courseTitle}" with these lessons, generate ${count} multiple choice questions.
@@ -202,7 +113,7 @@ Respond ONLY with a JSON array, no extra text:
 
     const text = await this.generate(prompt);
     this.logger.log(`Generated ${count} MCQ questions for: ${courseTitle}`);
-    return this.parseJson(text);
+    return parseGeminiJson(text);
   }
 
   // ─── Short Answer Questions ────────────────────────────────────────────────
@@ -213,8 +124,8 @@ Respond ONLY with a JSON array, no extra text:
     count: number = 5,
   ): Promise<any[]> {
     const lessonContent = lessons
-      .map((l) => `${l.title}: ${l.content ?? ''}`)
-      .join('\n\n');
+      .map((lesson) => `${lesson.title}: ${lesson.content ?? ""}`)
+      .join("\n\n");
 
     const prompt = `
 You are an expert quiz creator. Based on the course "${courseTitle}" with these lessons, generate ${count} short answer questions that require 1-3 sentence responses.
@@ -238,7 +149,7 @@ Respond ONLY with a JSON array, no extra text:
     this.logger.log(
       `Generated ${count} short answer questions for: ${courseTitle}`,
     );
-    return this.parseJson(text);
+    return parseGeminiJson(text);
   }
 
   // ─── Validate Short Answer ────────────────────────────────────────────────
@@ -254,7 +165,7 @@ You are a strict but fair grader evaluating a short answer response.
 
 Question: "${question}"
 Model Answer: "${correctAnswer}"
-Key Concepts Required: ${keywords.join(', ')}
+Key Concepts Required: ${keywords.join(", ")}
 Student Answer: "${studentAnswer}"
 
 Evaluate whether the student's answer is correct. Consider partial credit.
@@ -268,7 +179,7 @@ Respond ONLY with JSON:
 }`;
 
     const text = await this.generate(prompt);
-    return this.parseJson(text);
+    return parseGeminiJson(text);
   }
 
   // ─── Quiz Feedback ─────────────────────────────────────────────────────────
@@ -283,8 +194,8 @@ Respond ONLY with JSON:
     const prompt = `
 A student just completed a quiz for the course "${courseTitle}".
 Score: ${correctAnswers}/${totalQuestions}
-Strong topics: ${strongTopics.join(', ') || 'none'}
-Weak topics: ${weakTopics.join(', ') || 'none'}
+Strong topics: ${strongTopics.join(", ") || "none"}
+Weak topics: ${weakTopics.join(", ") || "none"}
 
 Write a short, encouraging feedback paragraph (3-4 sentences) highlighting their strengths and suggesting how to improve on weak areas.
 Return plain text only, no JSON.`;
@@ -303,9 +214,9 @@ Return plain text only, no JSON.`;
 You are an expert educator. Generate comprehensive study notes for the following lesson.
 
 Lesson: "${lessonTitle}"
-Description: ${description || 'N/A'}
+Description: ${description || "N/A"}
 Content:
-${content || 'No content provided — summarize the topic from the title.'}
+${content || "No content provided — summarize the topic from the title."}
 
 Create well-structured markdown notes including:
 - ## Key Concepts (bullet points)
@@ -328,13 +239,16 @@ Return only the markdown content, no JSON wrapper.`;
     subjectContext?: string,
   ): Promise<string> {
     const contextBlock = courseContext
-      ? `The student is currently studying the course: "${courseContext}". ${subjectContext ? `Subject area: ${subjectContext}.` : ''}`
-      : '';
+      ? `The student is currently studying the course: "${courseContext}". ${subjectContext ? `Subject area: ${subjectContext}.` : ""}`
+      : "";
 
     const historyText = history
       .slice(-10)
-      .map((m) => `${m.role === 'user' ? 'Student' : 'Assistant'}: ${m.content}`)
-      .join('\n');
+      .map(
+        (message) =>
+          `${message.role === "user" ? "Student" : "Assistant"}: ${message.content}`,
+      )
+      .join("\n");
 
     const prompt = `
 You are ThinkBloom AI — a helpful, friendly, and knowledgeable learning assistant for an online LMS platform.
@@ -347,7 +261,7 @@ Your role:
 - Encourage curiosity and deeper learning
 - Keep responses concise but complete (3-6 sentences for most answers)
 
-${historyText ? `Conversation history:\n${historyText}\n` : ''}
+${historyText ? `Conversation history:\n${historyText}\n` : ""}
 Student: ${userMessage}
 Assistant:`;
 
@@ -360,23 +274,23 @@ Assistant:`;
     filePath: string,
     mimeType: string,
   ): Promise<{ summary: string; key_points: string[] }> {
-    const apiKey = this.configService.get<string>('GEMINI_API_KEY') as string;
+    const apiKey = this.configService.get<string>("GEMINI_API_KEY") as string;
     const fileManager = new GoogleAIFileManager(apiKey);
 
     const uploadResponse = await fileManager.uploadFile(filePath, {
       mimeType,
-      displayName: 'student-video',
+      displayName: "student-video",
     });
 
     let file = uploadResponse.file;
     while (file.state === FileState.PROCESSING) {
-      await new Promise((r) => setTimeout(r, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 3000));
       file = await fileManager.getFile(file.name);
     }
 
     if (file.state === FileState.FAILED) {
       throw new HttpException(
-        'Video processing failed. Please try a different file.',
+        "Video processing failed. Please try a different file.",
         HttpStatus.UNPROCESSABLE_ENTITY,
       );
     }
@@ -397,43 +311,77 @@ Respond ONLY in this exact JSON format:
     ]);
 
     await fileManager.deleteFile(file.name).catch(() => {});
-    this.logger.log('Video analyzed via Gemini File API');
-    return this.parseJson<{ summary: string; key_points: string[] }>(
+    this.logger.log("Video analyzed via Gemini File API");
+    return parseGeminiJson<{ summary: string; key_points: string[] }>(
       result.response.text(),
     );
   }
 
   // ─── Generate Course from Prompt (two-step: structure JSON + plain content) ──
 
-  async generateCourseFromPrompt(prompt: string, syllabus?: string[]): Promise<{
+  async generateCourseFromPrompt(
+    prompt: string,
+    syllabus?: string[],
+  ): Promise<{
     title: string;
     description: string;
     tags: string[];
-    lessons: { title: string; description: string; content: string; order: number }[];
+    lessons: {
+      title: string;
+      description: string;
+      content: string;
+      order: number;
+    }[];
   }> {
     // Step 1 — small, safe JSON: course outline only (no long content strings)
     const structure = await this.generateCourseStructure(prompt, syllabus);
-    this.logger.log(`Course structure ready: "${structure.title}" (${structure.lessons.length} lessons)`);
+    this.logger.log(
+      `Course structure ready: "${structure.title}" (${structure.lessons.length} lessons)`,
+    );
 
     // Step 2 — rich markdown content per lesson as plain text (no JSON at all)
-    // Run in parallel batches of 3 to balance speed vs rate-limit safety
-    const CONCURRENCY = 3;
-    const lessonsWithContent: { title: string; description: string; content: string; order: number }[] =
-      new Array(structure.lessons.length);
+    // Keep at most MAX_LESSONS_IN_FLIGHT requests open at once to balance
+    // speed against rate limits. This uses a sliding window rather than
+    // fixed batches: with batches of 3, the whole batch waited for its
+    // slowest lesson before the next three could start, so one slow
+    // generation stalled everything behind it. Here a worker picks up the
+    // next lesson the moment it finishes its current one.
+    const MAX_LESSONS_IN_FLIGHT = 3;
+    const lessonsWithContent: {
+      title: string;
+      description: string;
+      content: string;
+      order: number;
+    }[] = new Array(structure.lessons.length);
 
-    for (let i = 0; i < structure.lessons.length; i += CONCURRENCY) {
-      const batch = structure.lessons.slice(i, i + CONCURRENCY);
-      const batchResults = await Promise.all(
-        batch.map((lesson) =>
-          this.generateLessonContent(lesson.title, lesson.description, structure.title).then(
-            (content) => {
-            this.logger.log(`  ✓ Lesson ${lesson.order}: "${lesson.title}"`);
-            return { ...lesson, content };
-          }),
-        ),
-      );
-      batchResults.forEach((r, j) => { lessonsWithContent[i + j] = r; });
-    }
+    let nextLessonIndex = 0;
+    // Promise.all rejects on the first error but does not stop the other
+    // workers, so they check this before taking another lesson.
+    let hasFailed = false;
+    const runWorker = async () => {
+      while (!hasFailed && nextLessonIndex < structure.lessons.length) {
+        const lessonIndex = nextLessonIndex++;
+        const lesson = structure.lessons[lessonIndex];
+        try {
+          const content = await this.generateLessonContent(
+            lesson.title,
+            lesson.description,
+            structure.title,
+          );
+          this.logger.log(`  ✓ Lesson ${lesson.order}: "${lesson.title}"`);
+          lessonsWithContent[lessonIndex] = { ...lesson, content };
+        } catch (err) {
+          hasFailed = true;
+          throw err;
+        }
+      }
+    };
+
+    const workerCount = Math.min(
+      MAX_LESSONS_IN_FLIGHT,
+      structure.lessons.length,
+    );
+    await Promise.all(Array.from({ length: workerCount }, runWorker));
 
     return { ...structure, lessons: lessonsWithContent };
   }
@@ -450,8 +398,8 @@ Respond ONLY in this exact JSON format:
   }> {
     const syllabusBlock =
       syllabus && syllabus.length > 0
-        ? `\nSyllabus topics to cover (cover ALL of them):\n${syllabus.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
-        : '\nGenerate a comprehensive general curriculum for this subject.';
+        ? `\nSyllabus topics to cover (cover ALL of them):\n${syllabus.map((topic, topicIndex) => `${topicIndex + 1}. ${topic}`).join("\n")}`
+        : "\nGenerate a comprehensive general curriculum for this subject.";
 
     const structurePrompt = `You are a course designer. Based on the teacher's description below, plan a course outline.
 
@@ -475,7 +423,7 @@ Respond with ONLY this JSON (no markdown fences, no extra text):
 }`;
 
     const text = await this.generate(structurePrompt);
-    return this.parseJson(text);
+    return parseGeminiJson(text);
   }
 
   /** Step 2 — rich markdown returned as plain text. No JSON wrapping = no escaping issues. */
@@ -520,7 +468,7 @@ Course Summary:
 ${summary}
 
 Key Points:
-${keyPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}
+${keyPoints.map((point, pointIndex) => `${pointIndex + 1}. ${point}`).join("\n")}
 
 Generate comprehensive, student-friendly study notes in markdown format including:
 - ## Key Concepts (expandable explanations of each key point)
@@ -552,7 +500,7 @@ Return only the markdown content, no JSON wrapper.`;
     const prompt = `
 You are an expert educator helping slow learners deeply understand concepts through multiple representations.
 
-Explain the term "${term}" in the context of each of the following subjects: ${subjects.join(', ')}.
+Explain the term "${term}" in the context of each of the following subjects: ${subjects.join(", ")}.
 
 For each subject provide ALL of the following:
 1. explanation: A clear 2-3 sentence explanation of what "${term}" means in this subject
@@ -574,6 +522,6 @@ Respond ONLY with a JSON array, no extra text:
 ]`;
 
     const text = await this.generate(prompt);
-    return this.parseJson(text);
+    return parseGeminiJson(text);
   }
 }

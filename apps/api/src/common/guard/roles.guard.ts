@@ -3,10 +3,9 @@ import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import {UserRole} from 'data-sources/generated/system/enums';
-
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { UserRole } from "@thinkbloom/data-sources";
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -15,7 +14,7 @@ export class RolesGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     // Get required roles from decorator
     const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(
-      'roles',
+      "roles",
       [context.getHandler(), context.getClass()],
     );
 
@@ -27,7 +26,7 @@ export class RolesGuard implements CanActivate {
     const user = request.user;
 
     if (!user) {
-      throw new ForbiddenException('User not authenticated');
+      throw new ForbiddenException("User not authenticated");
     }
 
     // Check if user has any of the required roles
@@ -35,7 +34,7 @@ export class RolesGuard implements CanActivate {
 
     if (!hasRole) {
       throw new ForbiddenException(
-        `Access denied. Required roles: ${requiredRoles.join(', ')}`,
+        `Access denied. Required roles: ${requiredRoles.join(", ")}`,
       );
     }
 

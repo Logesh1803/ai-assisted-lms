@@ -20,17 +20,17 @@ export function useQuotaCountdown() {
   useEffect(() => {
     if (quotaSeconds <= 0) return;
 
-    const id = setInterval(() => {
-      setQuotaSeconds((s) => {
-        if (s <= 1) {
-          clearInterval(id);
+    const countdownInterval = setInterval(() => {
+      setQuotaSeconds((secondsLeft) => {
+        if (secondsLeft <= 1) {
+          clearInterval(countdownInterval);
           return 0;
         }
-        return s - 1;
+        return secondsLeft - 1;
       });
     }, 1000);
 
-    return () => clearInterval(id);
+    return () => clearInterval(countdownInterval);
   }, [quotaSeconds]);
 
   // When countdown reaches 0, fire the stored retry callback

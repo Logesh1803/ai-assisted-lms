@@ -4,15 +4,19 @@ import {
   BadRequestException,
   ForbiddenException,
   Logger,
-} from '@nestjs/common';
-import { CreateLessonDto } from './dto/create-lesson.dto';
-import { UpdateLessonDto } from './dto/update-lesson.dto';
-import { SystemsDatabaseService } from '@thinkbloom/data-sources';
-import { UploadService } from '../upload/upload.service';
-import { GeminiService } from '../gemini/gemini.service';
-import { getTimestamps } from 'utils/src/date-formatter.service';
-import { Request, Response } from 'express';
-import { VideoProducerService } from 'message-queues/src';
+} from "@nestjs/common";
+import { CreateLessonDto } from "./dto/create-lesson.dto";
+import { UpdateLessonDto } from "./dto/update-lesson.dto";
+import { QueryLessonDto } from "./dto/query-lesson.dto";
+import {
+  PrismaSystemTypes,
+  SystemsDatabaseService,
+} from "@thinkbloom/data-sources";
+import { UploadService } from "../upload/upload.service";
+import { GeminiService } from "../gemini/gemini.service";
+import { getTimestamps } from "@thinkbloom/utils";
+import { Request, Response } from "express";
+import { VideoProducerService } from "@thinkbloom/message-queues";
 
 @Injectable()
 export class LessonService {
@@ -25,22 +29,25 @@ export class LessonService {
     private videoProducer: VideoProducerService,
   ) {}
 
-  // ============== CREATE LESSON ==============
+  // ─── CREATE LESSON ─────────────────────────────────────────────────────
   async create(createLessonDto: CreateLessonDto, userId: number) {
     const course = await this.prisma.course.findUnique({
       where: { id: createLessonDto.course_id },
     });
 
-    if (!course) throw new NotFoundException('Course not found');
+    if (!course) throw new NotFoundException("Course not found");
     if (course.teacher_id !== userId)
-      throw new ForbiddenException('Only the course teacher can create lessons');
+      throw new ForbiddenException(
+        "Only the course teacher can create lessons",
+      );
 
     const lastLesson = await this.prisma.lesson.findFirst({
       where: { course_id: createLessonDto.course_id },
-      orderBy: { order: 'desc' },
+      orderBy: { order: "desc" },
     });
 
-    const order = createLessonDto.order ?? (lastLesson ? lastLesson.order + 1 : 1);
+    const order =
+      createLessonDto.order ?? (lastLesson ? lastLesson.order + 1 : 1);
     const now = BigInt(Date.now());
 
     return this.prisma.lesson.create({
@@ -57,7 +64,7 @@ export class LessonService {
     });
   }
 
-  // ============== UPLOAD LESSON VIDEO ==============
+  // ─── UPLOAD LESSON VIDEO ───────────────────────────────────────────────
   async uploadVideo(
     lessonId: number,
     file: Express.Multer.File,
@@ -74,15 +81,20 @@ export class LessonService {
       },
     });
 
-    if (!lesson || lesson.deleted_at) throw new NotFoundException('Lesson not found');
+    if (!lesson || lesson.deleted_at)
+      throw new NotFoundException("Lesson not found");
     if (lesson.course.teacher_id !== userId)
-      throw new ForbiddenException('Only the course teacher can upload videos');
+      throw new ForbiddenException("Only the course teacher can upload videos");
 
     // Delete old video blob if exists
     if (lesson.video_url) {
       const oldFile = await this.prisma.importedFile.findFirst({
-        where: { lesson_id: lessonId, file_type: { startsWith: 'video/' }, deleted_at: null },
-        orderBy: { created_at: 'desc' },
+        where: {
+          lesson_id: lessonId,
+          file_type: { startsWith: "video/" },
+          deleted_at: null,
+        },
+        orderBy: { created_at: "desc" },
       });
 
       if (oldFile) {
@@ -96,7 +108,10 @@ export class LessonService {
 
     // Upload new video
     const { blobFileName, fileUrl, fileSize, fileType } =
-      await this.uploadService.uploadVideo(file, `courses/${lesson.course_id}/lessons/${lessonId}`);
+      await this.uploadService.uploadVideo(
+        file,
+        `courses/${lesson.course_id}/lessons/${lessonId}`,
+      );
 
     const [importedFile] = await this.prisma.$transaction([
       this.prisma.importedFile.create({
@@ -111,7 +126,7 @@ export class LessonService {
           file_type: fileType,
           created_by: userId,
           updated_by: userId,
-          ...getTimestamps('create'),
+          ...getTimestamps("create"),
         },
       }),
       this.prisma.lesson.update({
@@ -119,29 +134,33 @@ export class LessonService {
         data: {
           video_url: fileUrl,
           updated_by: userId,
-          ...getTimestamps('update'),
+          ...getTimestamps("update"),
         },
       }),
     ]);
 
-    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2) + " MB";
 
     // Dispatch background job for post-upload processing & teacher email notification
-    this.videoProducer.dispatchVideoProcess({
-      lessonId,
-      lessonTitle: lesson.title,
-      courseTitle: lesson.course.title,
-      courseId: lesson.course_id,
-      courseUuid: lesson.course.uuid,
-      teacherName: lesson.course.teacher.first_name,
-      teacherEmail: lesson.course.teacher.email,
-      fileName: file.originalname,
-      fileUrl,
-      fileSize: fileSizeMB,
-    }).catch((err) => this.logger.error('Failed to dispatch video process job', err));
+    this.videoProducer
+      .dispatchVideoProcess({
+        lessonId,
+        lessonTitle: lesson.title,
+        courseTitle: lesson.course.title,
+        courseId: lesson.course_id,
+        courseUuid: lesson.course.uuid,
+        teacherName: lesson.course.teacher.first_name,
+        teacherEmail: lesson.course.teacher.email,
+        fileName: file.originalname,
+        fileUrl,
+        fileSize: fileSizeMB,
+      })
+      .catch((err) =>
+        this.logger.error("Failed to dispatch video process job", err),
+      );
 
     return {
-      message: 'Video uploaded successfully',
+      message: "Video uploaded successfully",
       file: {
         uuid: importedFile.uuid,
         originalName: importedFile.original_file_name,
@@ -152,22 +171,28 @@ export class LessonService {
     };
   }
 
-  // ============== DELETE LESSON VIDEO ==============
+  // ─── DELETE LESSON VIDEO ───────────────────────────────────────────────
   async deleteVideo(lessonId: number, userId: number) {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id: lessonId },
       include: { course: true },
     });
 
-    if (!lesson || lesson.deleted_at) throw new NotFoundException('Lesson not found');
+    if (!lesson || lesson.deleted_at)
+      throw new NotFoundException("Lesson not found");
     if (lesson.course.teacher_id !== userId)
-      throw new ForbiddenException('Only the course teacher can delete videos');
+      throw new ForbiddenException("Only the course teacher can delete videos");
 
-    if (!lesson.video_url) throw new BadRequestException('Lesson has no video to delete');
+    if (!lesson.video_url)
+      throw new BadRequestException("Lesson has no video to delete");
 
     const videoFile = await this.prisma.importedFile.findFirst({
-      where: { lesson_id: lessonId, file_type: { startsWith: 'video/' }, deleted_at: null },
-      orderBy: { created_at: 'desc' },
+      where: {
+        lesson_id: lessonId,
+        file_type: { startsWith: "video/" },
+        deleted_at: null,
+      },
+      orderBy: { created_at: "desc" },
     });
 
     if (videoFile) {
@@ -183,35 +208,37 @@ export class LessonService {
       data: {
         video_url: null,
         updated_by: userId,
-        ...getTimestamps('update'),
+        ...getTimestamps("update"),
       },
     });
 
-    return { message: 'Video deleted successfully' };
+    return { message: "Video deleted successfully" };
   }
 
-  // ============== FIND ALL LESSONS ==============
-  async findAll(filters?: { course_id?: number; teacher_id?: number; search?: string }) {
-    const where: any = { deleted_at: null };
+  // ─── FIND ALL LESSONS ──────────────────────────────────────────────────
+  async findAll(filters?: QueryLessonDto) {
+    const where: PrismaSystemTypes.LessonWhereInput = { deleted_at: null };
 
     if (filters?.course_id) where.course_id = filters.course_id;
     if (filters?.teacher_id) where.course = { teacher_id: filters.teacher_id };
     if (filters?.search) {
       where.OR = [
-        { title: { contains: filters.search, mode: 'insensitive' } },
-        { description: { contains: filters.search, mode: 'insensitive' } },
+        { title: { contains: filters.search, mode: "insensitive" } },
+        { description: { contains: filters.search, mode: "insensitive" } },
       ];
     }
 
     return this.prisma.lesson.findMany({
       where,
-      orderBy: [{ course_id: 'asc' }, { order: 'asc' }],
+      orderBy: [{ course_id: "asc" }, { order: "asc" }],
       include: {
         course: {
           select: {
             id: true,
             title: true,
-            teacher: { select: { id: true, first_name: true, last_name: true } },
+            teacher: {
+              select: { id: true, first_name: true, last_name: true },
+            },
           },
         },
         _count: { select: { files: true, progress: true } },
@@ -219,14 +246,16 @@ export class LessonService {
     });
   }
 
-  // ============== FIND BY COURSE ==============
+  // ─── FIND BY COURSE ────────────────────────────────────────────────────
   async findByCourse(courseId: number) {
-    const course = await this.prisma.course.findUnique({ where: { id: courseId } });
-    if (!course) throw new NotFoundException('Course not found');
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+    });
+    if (!course) throw new NotFoundException("Course not found");
 
     return this.prisma.lesson.findMany({
       where: { course_id: courseId, deleted_at: null },
-      orderBy: { order: 'asc' },
+      orderBy: { order: "asc" },
       include: {
         files: { where: { deleted_at: null } },
         _count: { select: { progress: true } },
@@ -234,14 +263,21 @@ export class LessonService {
     });
   }
 
-  // ============== FIND ONE ==============
+  // ─── FIND ONE ──────────────────────────────────────────────────────────
   async findOne(id: number, userId?: number) {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id },
       include: {
         course: {
           include: {
-            teacher: { select: { id: true, first_name: true, last_name: true, email: true } },
+            teacher: {
+              select: {
+                id: true,
+                first_name: true,
+                last_name: true,
+                email: true,
+              },
+            },
           },
         },
         files: { where: { deleted_at: null } },
@@ -254,22 +290,29 @@ export class LessonService {
       },
     });
 
-    if (!lesson || lesson.deleted_at) throw new NotFoundException('Lesson not found');
+    if (!lesson || lesson.deleted_at)
+      throw new NotFoundException("Lesson not found");
     return lesson;
   }
 
-  // ============== UPDATE LESSON ==============
+  // ─── UPDATE LESSON ─────────────────────────────────────────────────────
   async update(id: number, updateLessonDto: UpdateLessonDto, userId: number) {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id },
       include: { course: true },
     });
 
-    if (!lesson || lesson.deleted_at) throw new NotFoundException('Lesson not found');
+    if (!lesson || lesson.deleted_at)
+      throw new NotFoundException("Lesson not found");
     if (lesson.course.teacher_id !== userId)
-      throw new ForbiddenException('Only the course teacher can update lessons');
+      throw new ForbiddenException(
+        "Only the course teacher can update lessons",
+      );
 
-    if (updateLessonDto.order !== undefined && updateLessonDto.order !== lesson.order) {
+    if (
+      updateLessonDto.order !== undefined &&
+      updateLessonDto.order !== lesson.order
+    ) {
       await this.reorderLessons(lesson.course_id, id, updateLessonDto.order);
     }
 
@@ -278,22 +321,25 @@ export class LessonService {
       data: {
         ...updateLessonDto,
         updated_by: userId,
-        ...getTimestamps('update'),
+        ...getTimestamps("update"),
       },
       include: { course: { select: { id: true, title: true } } },
     });
   }
 
-  // ============== SOFT DELETE ==============
+  // ─── SOFT DELETE ───────────────────────────────────────────────────────
   async remove(id: number, userId: number) {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id },
       include: { course: true },
     });
 
-    if (!lesson || lesson.deleted_at) throw new NotFoundException('Lesson not found');
+    if (!lesson || lesson.deleted_at)
+      throw new NotFoundException("Lesson not found");
     if (lesson.course.teacher_id !== userId)
-      throw new ForbiddenException('Only the course teacher can delete lessons');
+      throw new ForbiddenException(
+        "Only the course teacher can delete lessons",
+      );
 
     const now = BigInt(Date.now());
     return this.prisma.lesson.update({
@@ -302,15 +348,16 @@ export class LessonService {
     });
   }
 
-  // ============== REORDER LESSONS ==============
+  // ─── REORDER LESSONS ───────────────────────────────────────────────────
   async reorderLessons(courseId: number, lessonId: number, newOrder: number) {
-    const lessons = await this.prisma.lesson.findMany({
-      where: { course_id: courseId, deleted_at: null },
-      orderBy: { order: 'asc' },
+    // Only this one lesson's current position is needed. Loading every lesson
+    // in the course dragged each full markdown body across with it just to
+    // read a single integer.
+    const currentLesson = await this.prisma.lesson.findFirst({
+      where: { id: lessonId, course_id: courseId, deleted_at: null },
+      select: { order: true },
     });
-
-    const currentLesson = lessons.find((l) => l.id === lessonId);
-    if (!currentLesson) throw new NotFoundException('Lesson not found');
+    if (!currentLesson) throw new NotFoundException("Lesson not found");
 
     const oldOrder = currentLesson.order;
     if (oldOrder === newOrder) return;
@@ -318,30 +365,47 @@ export class LessonService {
     await this.prisma.$transaction(async (tx) => {
       if (newOrder > oldOrder) {
         await tx.lesson.updateMany({
-          where: { course_id: courseId, order: { gt: oldOrder, lte: newOrder }, deleted_at: null },
+          where: {
+            course_id: courseId,
+            order: { gt: oldOrder, lte: newOrder },
+            deleted_at: null,
+          },
           data: { order: { decrement: 1 } },
         });
       } else {
         await tx.lesson.updateMany({
-          where: { course_id: courseId, order: { gte: newOrder, lt: oldOrder }, deleted_at: null },
+          where: {
+            course_id: courseId,
+            order: { gte: newOrder, lt: oldOrder },
+            deleted_at: null,
+          },
           data: { order: { increment: 1 } },
         });
       }
-      await tx.lesson.update({ where: { id: lessonId }, data: { order: newOrder } });
+      await tx.lesson.update({
+        where: { id: lessonId },
+        data: { order: newOrder },
+      });
     });
   }
 
-  // ============== VIDEO STREAMING ==============
+  // ─── VIDEO STREAMING ───────────────────────────────────────────────────
   async streamVideo(id: number, req: Request, res: Response) {
     const lesson = await this.prisma.lesson.findUnique({ where: { id } });
-    if (!lesson || lesson.deleted_at) throw new NotFoundException('Lesson not found');
-    if (!lesson.video_url) throw new NotFoundException('This lesson has no video');
+    if (!lesson || lesson.deleted_at)
+      throw new NotFoundException("Lesson not found");
+    if (!lesson.video_url)
+      throw new NotFoundException("This lesson has no video");
 
     const file = await this.prisma.importedFile.findFirst({
-      where: { lesson_id: id, file_type: { startsWith: 'video/' }, deleted_at: null },
-      orderBy: { created_at: 'desc' },
+      where: {
+        lesson_id: id,
+        file_type: { startsWith: "video/" },
+        deleted_at: null,
+      },
+      orderBy: { created_at: "desc" },
     });
-    if (!file) throw new NotFoundException('Video file record not found');
+    if (!file) throw new NotFoundException("Video file record not found");
 
     if (this.uploadService.isS3Mode()) {
       // Redirect to a short-lived presigned S3 URL (1 hour)
@@ -354,15 +418,16 @@ export class LessonService {
     this.uploadService.streamVideo(localPath, req, res);
   }
 
-  // ============== NOTES: GENERATE & SAVE ==============
+  // ─── NOTES: GENERATE & SAVE ────────────────────────────────────────────
   async generateAndSaveNotes(id: number, userId: number) {
     const lesson = await this.prisma.lesson.findUnique({ where: { id } });
-    if (!lesson || lesson.deleted_at) throw new NotFoundException('Lesson not found');
+    if (!lesson || lesson.deleted_at)
+      throw new NotFoundException("Lesson not found");
 
     const content = await this.geminiService.generateLessonNotes(
       lesson.title,
-      lesson.content ?? '',
-      lesson.description ?? '',
+      lesson.content ?? "",
+      lesson.description ?? "",
     );
 
     const now = BigInt(Date.now());
@@ -386,13 +451,17 @@ export class LessonService {
     return note;
   }
 
-  // ============== NOTES: FETCH ==============
+  // ─── NOTES: FETCH ──────────────────────────────────────────────────────
   async getNotes(id: number) {
     const lesson = await this.prisma.lesson.findUnique({ where: { id } });
-    if (!lesson || lesson.deleted_at) throw new NotFoundException('Lesson not found');
+    if (!lesson || lesson.deleted_at)
+      throw new NotFoundException("Lesson not found");
 
-    const note = await this.prisma.lessonNote.findUnique({ where: { lesson_id: id } });
-    if (!note) throw new NotFoundException('Notes not yet generated for this lesson');
+    const note = await this.prisma.lessonNote.findUnique({
+      where: { lesson_id: id },
+    });
+    if (!note)
+      throw new NotFoundException("Notes not yet generated for this lesson");
 
     return note;
   }

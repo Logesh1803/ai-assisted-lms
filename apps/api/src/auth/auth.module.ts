@@ -1,15 +1,15 @@
-import { Module } from '@nestjs/common';
-import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service';
-import {HashingProvider} from "@/common/providers/hashing.provider";
-import {UserModule} from "@/user/user.module";
-import {ConfigModule, ConfigService} from "@nestjs/config";
-import {JwtModule} from "@nestjs/jwt";
-import {PassportModule} from "@nestjs/passport";
-import {JwtStrategy} from "@/common/guard/jwt-strategy";
+import { Module } from "@nestjs/common";
+import { AuthController } from "./auth.controller";
+import { AuthService } from "./auth.service";
+import { HashingProvider } from "@/common/providers/hashing.provider";
+import { UserModule } from "@/user/user.module";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { JwtModule } from "@nestjs/jwt";
+import { PassportModule } from "@nestjs/passport";
+import { JwtStrategy } from "@/common/guard/jwt-strategy";
 
 @Module({
-  imports:[
+  imports: [
     PassportModule.register({ defaultStrategy: "jwt" }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -20,9 +20,11 @@ import {JwtStrategy} from "@/common/guard/jwt-strategy";
           expiresIn: configService.get<number>("JWT_EXPIRES_IN") || "1d",
         },
       }),
-    }),UserModule],
+    }),
+    UserModule,
+  ],
   controllers: [AuthController],
-  providers: [AuthService,HashingProvider,JwtStrategy],
-  exports:[PassportModule,JwtModule,JwtStrategy,HashingProvider],
+  providers: [AuthService, HashingProvider, JwtStrategy],
+  exports: [PassportModule, JwtModule, JwtStrategy, HashingProvider],
 })
 export class AuthModule {}

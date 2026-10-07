@@ -28,8 +28,8 @@ export default function AIVideoPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<{ summary: string; key_points: string[] } | null>(null);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
     if (!ACCEPTED.includes(file.type)) {
       toast.error("Unsupported file type. Please upload mp4, webm, mov, avi or mkv.");
@@ -43,9 +43,9 @@ export default function AIVideoPage() {
     setResult(null);
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files?.[0];
     if (!file) return;
     if (!ACCEPTED.includes(file.type)) {
       toast.error("Unsupported file type.");
@@ -59,9 +59,9 @@ export default function AIVideoPage() {
     if (!selectedFile) return;
     setAnalyzing(true);
     try {
-      const data = await videoAnalysisApi.analyze(selectedFile) as any;
+      const data = await videoAnalysisApi.analyze(selectedFile);
       setResult(data);
-    } catch (err: any) {
+    } catch (err) {
       toast.error(getFriendlyError(err));
     } finally {
       setAnalyzing(false);
@@ -96,7 +96,7 @@ export default function AIVideoPage() {
               className="border-2 border-dashed rounded-xl p-12 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors"
               onClick={() => fileInputRef.current?.click()}
               onDrop={handleDrop}
-              onDragOver={(e) => e.preventDefault()}
+              onDragOver={(event) => event.preventDefault()}
             >
               <FileVideo className="h-14 w-14 mx-auto mb-4 text-muted-foreground opacity-40" />
               <p className="font-semibold text-lg mb-1">Drop a video here</p>
@@ -179,10 +179,10 @@ export default function AIVideoPage() {
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
-                {result.key_points.map((point, i) => (
-                  <li key={i} className="flex items-start gap-3">
+                {result.key_points.map((point, index) => (
+                  <li key={index} className="flex items-start gap-3">
                     <Badge variant="secondary" className="mt-0.5 shrink-0 h-5 w-5 flex items-center justify-center p-0 text-xs">
-                      {i + 1}
+                      {index + 1}
                     </Badge>
                     <span className="text-sm leading-relaxed">{point}</span>
                   </li>

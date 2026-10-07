@@ -1,8 +1,8 @@
+import { IsOptional, IsEnum } from "class-validator";
+import { EnrollmentStatus } from "@thinkbloom/data-sources";
+import { PaginationQueryDto } from "@/common/dto/base.dto";
 
-import { IsOptional, IsEnum, IsNumberString } from 'class-validator';
-import { EnrollmentStatus } from '@thinkbloom/data-sources';
-
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty } from "class-validator";
 
 export class CreateEnrollmentDto {
   @IsString()
@@ -10,15 +10,7 @@ export class CreateEnrollmentDto {
   courseUuid: string;
 }
 
-export class QueryEnrollmentDto {
-  @IsOptional()
-  @IsNumberString()
-  page?: number;
-
-  @IsOptional()
-  @IsNumberString()
-  limit?: number;
-
+export class QueryEnrollmentDto extends PaginationQueryDto {
   @IsOptional()
   @IsEnum(EnrollmentStatus)
   status?: EnrollmentStatus;

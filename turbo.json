@@ -6,12 +6,28 @@
       "cache": false
     },
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**"],
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
       "cache": false
     },
     "start": {
       "persistent": true,
+      "cache": false
+    },
+    "test": {
+      "outputs": [
+        "coverage/**"
+      ],
+      "cache": false
+    },
+    "lint": {
+      "cache": false
+    },
+    "lint:fix": {
       "cache": false
     }
   }

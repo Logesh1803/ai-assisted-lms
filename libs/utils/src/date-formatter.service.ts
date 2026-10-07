@@ -1,16 +1,16 @@
 import { DateTime } from "luxon";
 
-// Example: 1700000000
+// Milliseconds since the Unix epoch. Example: 1700000000000
 export function getCurrentUnixTimestamp(): bigint{
-  return BigInt(DateTime.now().toUnixInteger());
+  return BigInt(DateTime.now().toMillis());
 }
 
 export function getUnixTimestampPlusSeconds(secondsToAdd: number): bigint {
-  return BigInt(DateTime.now().plus({ seconds: secondsToAdd }).toUnixInteger());
+  return BigInt(DateTime.now().plus({ seconds: secondsToAdd }).toMillis());
 }
 
 export function getUnixTimestampPlusDays(daysToAdd: number): bigint {
-  return BigInt(DateTime.now().plus({ days: daysToAdd }).toUnixInteger());
+  return BigInt(DateTime.now().plus({ days: daysToAdd }).toMillis());
 }
 
 // Example: "14-11-2023 06:53"
@@ -19,7 +19,7 @@ export function formatUnixTimestamp(
   timezone: "Asia/Kolkata" | "GMT" | "utc" = "utc",
   format: string = "dd-MM-yyyy HH:mm",
 ): string | null {
-  return DateTime.fromSeconds(unix, { zone: timezone }).toFormat(format);
+  return DateTime.fromMillis(unix, { zone: timezone }).toFormat(format);
 }
 export function utcNow() {
   return DateTime.utc().toJSDate();
@@ -37,7 +37,7 @@ export function utcDateSubtractDays(days: number = 1) {
 
 // Example: "2 days ago"
 export function timeAgo(unix: number = 0): string | null {
-  return DateTime.fromSeconds(unix).toRelative();
+  return DateTime.fromMillis(unix).toRelative();
 }
 export function getTimestamps(action: "create"): {
   created_at: bigint;

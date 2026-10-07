@@ -16,10 +16,12 @@
     "prisma:system:generate": "npx prisma generate --config=libs/data-sources/prisma/system/prisma.config.ts",
     "prisma:system:deploy": "npx prisma migrate deploy --config=libs/data-sources/prisma/system/prisma.config.ts",
     "prisma:system:push": "npx prisma db push --config=libs/data-sources/prisma/system/prisma.config.ts",
-    "test": "playwright test",
-    "test:ui": "playwright test --ui",
-    "test:headed": "playwright test --headed",
-    "test:report": "playwright show-report"
+    "test": "turbo test",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report",
+    "lint:fix": "turbo lint:fix"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",

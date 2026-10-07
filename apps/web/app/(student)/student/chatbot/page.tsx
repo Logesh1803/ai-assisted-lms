@@ -17,6 +17,15 @@ import {
   Bot, User, Lightbulb, FlaskConical, BarChart2, ListOrdered,
   History, X,
 } from "lucide-react";
+import { getFriendlyError } from "@/lib/errors";
+import type { ConceptExplanation } from "@/lib/types";
+
+/** One line in the transcript. "error" is added locally, never by the API. */
+type ChatBubble = {
+  role: "user" | "assistant" | "error";
+  content: string;
+  created_at: string;
+};
 
 const SUBJECT_OPTIONS = [
   "Mathematics", "Physics", "Chemistry", "Biology",
@@ -35,11 +44,11 @@ export default function ChatbotPage() {
   const queryClient = useQueryClient();
   const [activeSessionUuid, setActiveSessionUuid] = useState<string | null>(null);
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<ChatBubble[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [conceptTerm, setConceptTerm] = useState("");
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
-  const [conceptResults, setConceptResults] = useState<any[]>([]);
+  const [conceptResults, setConceptResults] = useState<ConceptExplanation[]>([]);
   const [explaining, setExplaining] = useState(false);
   const [conceptDialogOpen, setConceptDialogOpen] = useState(false);
   const [mobileSessionsOpen, setMobileSessionsOpen] = useState(false);
@@ -53,7 +62,7 @@ export default function ChatbotPage() {
   const sendMutation = useMutation({
     mutationFn: (msg: string) =>
       chatbotApi.sendMessage({ message: msg, sessionUuid: activeSessionUuid || undefined }),
-    onSuccess: (data: any) => {
+    onSuccess: (data) => {
       if (!activeSessionUuid) setActiveSessionUuid(data.sessionUuid);
       setMessages((prev) => [
         ...prev,
@@ -61,10 +70,14 @@ export default function ChatbotPage() {
       ]);
       queryClient.invalidateQueries({ queryKey: ["chatbot-sessions"] });
     },
-    onError: (err: any) => {
+    onError: (error) => {
       setMessages((prev) => [
         ...prev,
-        { role: "error", content: err.message || "Failed to get a response.", created_at: new Date().toISOString() },
+        {
+          role: "error",
+          content: getFriendlyError(error),
+          created_at: new Date().toISOString(),
+        },
       ]);
     },
   });
@@ -77,7 +90,7 @@ export default function ChatbotPage() {
       setMessages([]);
       toast.success("Session deleted.");
     },
-    onError: (err: any) => toast.error(err.message || "Failed to delete session."),
+    onError: (error) => toast.error(getFriendlyError(error)),
   });
 
   useEffect(() => {
@@ -89,7 +102,7 @@ export default function ChatbotPage() {
     setLoadingMessages(true);
     try {
       const data = await chatbotApi.getSession(uuid);
-      setMessages((data as any).messages ?? data ?? []);
+      setMessages((data.messages ?? []) as ChatBubble[]);
     } catch {
       toast.error("Failed to load session.");
     } finally {
@@ -109,8 +122,12 @@ export default function ChatbotPage() {
   };
 
   const handleNewChat = () => { setActiveSessionUuid(null); setMessages([]); };
-  const toggleSubject = (s: string) =>
-    setSelectedSubjects((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
+  const toggleSubject = (subject: string) =>
+    setSelectedSubjects((prev) =>
+      prev.includes(subject)
+        ? prev.filter((chosen) => chosen !== subject)
+        : [...prev, subject],
+    );
 
   const handleExplainConcept = async () => {
     if (!conceptTerm.trim() || selectedSubjects.length === 0) {
@@ -120,15 +137,15 @@ export default function ChatbotPage() {
     setExplaining(true);
     try {
       const results = await chatbotApi.explainConcept(conceptTerm, selectedSubjects);
-      setConceptResults(results as unknown as any[]);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to explain concept.");
+      setConceptResults(results);
+    } catch (err) {
+      toast.error(getFriendlyError(err));
     } finally {
       setExplaining(false);
     }
   };
 
-  const sessionsList: any[] = (sessions as unknown as any[]) ?? [];
+  const sessionsList = sessions ?? [];
 
   /* ── Session list (shared between desktop sidebar + mobile drawer) ─── */
   const sessionsListContent = (
@@ -142,7 +159,7 @@ export default function ChatbotPage() {
       <div className="flex-1 overflow-y-auto py-2 px-2 space-y-1">
         {sessionsLoading ? (
           <div className="space-y-2 p-1">
-            {[0, 1, 2].map((i) => <Skeleton key={i} className="h-12 rounded-xl" />)}
+            {[0, 1, 2].map((index) => <Skeleton key={index} className="h-12 rounded-xl" />)}
           </div>
         ) : sessionsList.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center py-10 px-4">
@@ -150,7 +167,7 @@ export default function ChatbotPage() {
             <p className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>No conversations yet</p>
           </div>
         ) : (
-          sessionsList.map((session: any) => {
+          sessionsList.map((session) => {
             const isActive = activeSessionUuid === session.uuid;
             return (
               <div
@@ -162,16 +179,16 @@ export default function ChatbotPage() {
                     : { color: "rgba(255,255,255,0.55)" }
                 }
                 onClick={() => { loadSession(session.uuid); setMobileSessionsOpen(false); }}
-                onMouseEnter={(e) => {
+                onMouseEnter={(event) => {
                   if (!isActive) {
-                    (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)";
-                    (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.85)";
+                    (event.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)";
+                    (event.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.85)";
                   }
                 }}
-                onMouseLeave={(e) => {
+                onMouseLeave={(event) => {
                   if (!isActive) {
-                    (e.currentTarget as HTMLElement).style.background = "transparent";
-                    (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.55)";
+                    (event.currentTarget as HTMLElement).style.background = "transparent";
+                    (event.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.55)";
                   }
                 }}
               >
@@ -179,14 +196,14 @@ export default function ChatbotPage() {
                   <p className="text-sm font-medium truncate">
                     {session.title || `Chat ${session.uuid.slice(0, 8)}`}
                   </p>
-                  {session.createdAt && (
+                  {session.created_at && (
                     <p className="text-[11px] mt-0.5" style={{ color: isActive ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.30)" }}>
-                      {formatDate(session.createdAt)}
+                      {formatDate(session.created_at)}
                     </p>
                   )}
                 </div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(session.uuid); }}
+                  onClick={(event) => { event.stopPropagation(); deleteMutation.mutate(session.uuid); }}
                   className="opacity-0 group-hover:opacity-100 p-1 rounded-lg transition-all hover:bg-red-500/20 hover:text-red-400"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -213,7 +230,7 @@ export default function ChatbotPage() {
             </div>
             <h1 className="text-2xl font-extrabold tracking-tight">AI Tutor</h1>
           </div>
-          <p className="text-sm text-muted-foreground">Ask anything — I'm context-aware of your courses.</p>
+          <p className="text-sm text-muted-foreground">Ask anything — I&apos;m context-aware of your courses.</p>
         </div>
         <Dialog open={conceptDialogOpen} onOpenChange={setConceptDialogOpen}>
           <DialogTrigger asChild>
@@ -232,7 +249,7 @@ export default function ChatbotPage() {
             <div className="space-y-4 mt-2">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Term or Concept</label>
-                <Input placeholder="e.g., Photosynthesis, Recursion, Supply and Demand" value={conceptTerm} onChange={(e) => setConceptTerm(e.target.value)} />
+                <Input placeholder="e.g., Photosynthesis, Recursion, Supply and Demand" value={conceptTerm} onChange={(event) => setConceptTerm(event.target.value)} />
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Select Subjects ({selectedSubjects.length} selected)</label>
@@ -262,8 +279,8 @@ export default function ChatbotPage() {
                 <div className="space-y-5 mt-4">
                   <Separator />
                   <h3 className="font-semibold">Explanations for &quot;{conceptTerm}&quot;</h3>
-                  {conceptResults.map((result: any, i: number) => (
-                    <div key={i} className="rounded-2xl overflow-hidden" style={{ border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}>
+                  {conceptResults.map((result, index) => (
+                    <div key={index} className="rounded-2xl overflow-hidden" style={{ border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}>
                       <div className="px-4 py-3 flex items-center gap-2" style={{ background: "var(--gradient-ai)" }}>
                         <Sparkles className="h-4 w-4 text-white" />
                         <span className="font-bold text-sm text-white">{result.subject}</span>
@@ -369,7 +386,7 @@ export default function ChatbotPage() {
             <span className="text-muted-foreground/40 text-xs">·</span>
             <span className="text-xs text-muted-foreground truncate">
               {activeSessionUuid
-                ? (sessionsList.find((s: any) => s.uuid === activeSessionUuid)?.title ?? "Chat")
+                ? (sessionsList.find((session) => session.uuid === activeSessionUuid)?.title ?? "Chat")
                 : "New Chat"}
             </span>
           </div>
@@ -409,15 +426,15 @@ export default function ChatbotPage() {
 
             {loadingMessages && (
               <div className="space-y-3">
-                {[0, 1, 2].map((i) => (
-                  <div key={i} className={`flex ${i % 2 === 0 ? "justify-start" : "justify-end"}`}>
-                    <Skeleton className={`h-14 ${i % 2 === 0 ? "w-3/4" : "w-2/3"} rounded-2xl`} />
+                {[0, 1, 2].map((index) => (
+                  <div key={index} className={`flex ${index % 2 === 0 ? "justify-start" : "justify-end"}`}>
+                    <Skeleton className={`h-14 ${index % 2 === 0 ? "w-3/4" : "w-2/3"} rounded-2xl`} />
                   </div>
                 ))}
               </div>
             )}
 
-            {messages.map((msg: any, index: number) => {
+            {messages.map((msg, index) => {
               const isUser = msg.role === "user";
               if (msg.role === "error") return (
                 <div key={index} className="flex justify-center my-2">
@@ -501,8 +518,8 @@ export default function ChatbotPage() {
               <Input
                 placeholder="Ask your AI tutor anything…"
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                onChange={(event) => setMessage(event.target.value)}
+                onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); handleSend(); } }}
                 disabled={sendMutation.isPending}
                 className="rounded-full"
               />
